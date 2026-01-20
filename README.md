@@ -13,4 +13,3 @@ We propose a mobile app using AI and computer vision to enable real-time communi
 
 
 
-ah ulul
