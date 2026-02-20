@@ -9,7 +9,7 @@ import io
 app = FastAPI()
 
 # Load trained model once
-model = load_model("models/asl_model.h5")
+model = load_model("models/asl_model_finetuned.h5")
 class_names = [chr(i) for i in range(65, 91)]  # A-Z
 
 @app.post("/predict/")
