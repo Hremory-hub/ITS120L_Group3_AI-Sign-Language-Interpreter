@@ -12,10 +12,12 @@ export default function Footer() {
         </p>
         <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 text-sm text-teal-100">
           <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-          <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+          <a href="#" className="hover:text-white transition-colors">Terms of Service</a>       
           <a href="#" className="hover:text-white transition-colors">Accessibility</a>
         </div>
       </div>
     </footer>
   )
 }
+
+// sa sunod nalang yung privacy policy, terms of service, etc. pages. for now they can just link to # lol

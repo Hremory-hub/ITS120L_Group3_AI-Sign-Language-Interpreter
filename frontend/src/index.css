@@ -2,7 +2,6 @@
 
 @import "tailwindcss";
 
-/* ─── Tailwind v4: CSS-first theme ─── */
 @theme {
   --color-teal-50:  #edfafa;
   --color-teal-100: #d5f5f5;

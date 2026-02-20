@@ -1,4 +1,4 @@
-const FEATURES = [
+const FEATURES = [ // dito lagay
   {
     icon: '🧠',
     title: 'Real-Time AI Detection',
@@ -7,20 +7,20 @@ const FEATURES = [
   },
   {
     icon: '🌍',
-    title: '40+ Sign Languages',
-    desc: 'From ASL and BSL to regional dialects worldwide — KamAI bridges communication across borders and cultures.',
+    title: 'Filipino Sign Language',
+    desc: 'With integrated support to Filipino Sign Language, KamAI bridges communication across islands and cultures.',
     color: 'bg-blue-50 text-blue-600',
   },
   {
     icon: '🎓',
     title: 'Built for Classrooms',
-    desc: 'Purpose-built tools for teachers, students, and interpreters. Seamlessly integrates with Google Classroom & Zoom.',
+    desc: 'Purpose-built tools for teachers, students, and interpreters.',
     color: 'bg-purple-50 text-purple-600',
   },
   {
-    icon: '📱',
+    icon: '💻',
     title: 'Works Everywhere',
-    desc: 'Browser-based with no installation required. Works on any device with a camera — phone, tablet, or laptop.',
+    desc: 'Browser-based with no installation required. Works on desktop PCs and laptops with a webcam.',
     color: 'bg-amber-50 text-amber-600',
   },
   {
@@ -56,7 +56,7 @@ export default function Features() {
           </p>
         </div>
 
-        {/* Grid: 1 col mobile → 2 cols tablet → 3 cols desktop */}
+        {/* Grid: 1 col mobile -> 2 cols tablet -> 3 cols desktop */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {FEATURES.map((f) => (
             <div key={f.title}

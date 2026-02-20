@@ -7,12 +7,13 @@ const NAV_LINKS = [
 ]
 
 const ABOUT_ITEMS = [
-  { label: 'Our Mission',  href: '#mission' },
-  { label: 'How It Works', href: '#how'     },
-  { label: 'Our Team',     href: '#team'    },
+  { label: 'Overview',     href: '/about/overview'   },
+  { label: 'How It Works', href: '/about/how-it-works' },
 ]
 
-function AboutDropdown() {
+/* Paayos ako dito hover bbug e*/
+
+function AboutDropdown({ activePage }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -22,6 +23,8 @@ function AboutDropdown() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  const isAboutActive = activePage?.startsWith('/about')
+
   return (
     <div ref={ref} className="relative"
       onMouseEnter={() => setOpen(true)}
@@ -29,7 +32,8 @@ function AboutDropdown() {
     >
       <button
         onClick={() => setOpen(o => !o)}
-        className="nav-underline flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-teal-500 transition-colors"
+        className={`nav-underline flex items-center gap-1 text-sm font-medium transition-colors
+          ${isAboutActive ? 'text-teal-500 bg-gray-100 px-3 py-1 rounded-md' : 'text-gray-700 hover:text-teal-500'}`}
       >
         About App
         <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
@@ -41,7 +45,10 @@ function AboutDropdown() {
         <div className="absolute top-full left-0 mt-3 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-fadeIn">
           {ABOUT_ITEMS.map(item => (
             <a key={item.href} href={item.href}
-              className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
+              className={`block px-4 py-2.5 text-sm transition-colors
+                ${activePage === item.href
+                  ? 'bg-teal-50 text-teal-600 font-semibold'
+                  : 'text-gray-700 hover:bg-teal-50 hover:text-teal-600'}`}>
               {item.label}
             </a>
           ))}
@@ -51,7 +58,7 @@ function AboutDropdown() {
   )
 }
 
-export default function Navbar() {
+export default function Navbar({ activePage }) {
   const [scrolled,   setScrolled]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -61,7 +68,6 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
@@ -72,9 +78,18 @@ export default function Navbar() {
       ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-md' : 'bg-white'}`}>
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14 sm:h-16">
 
-        {/* Logo */}
-        <a href="#" className="flex items-center gap-2 flex-shrink-0">
-          <span className="animate-wave origin-bottom inline-block">
+        <a href="/" className="flex items-center gap-2 flex-shrink-0">
+          <img
+            src="/assets/logo.png"
+            alt="KamAI logo"
+            className="h-9 w-auto"
+            onError={(e) => {
+              // Fallback 
+              e.target.style.display = 'none'
+              e.target.nextSibling.style.display = 'flex'
+            }}
+          />
+          <span className="animate-wave origin-bottom hidden items-center">
             <svg width="34" height="34" viewBox="0 0 36 36" fill="none">
               <circle cx="18" cy="18" r="18" fill="#2AABAC" fillOpacity="0.12"/>
               <text x="18" y="24" textAnchor="middle" fontSize="17" fill="#2AABAC">🤟</text>
@@ -85,9 +100,9 @@ export default function Navbar() {
           </span>
         </a>
 
-        {/* Desktop Nav */}
+        {/* ── Desktop Nav ── */}
         <ul className="hidden md:flex items-center gap-8">
-          <li><AboutDropdown /></li>
+          <li><AboutDropdown activePage={activePage} /></li>
           {NAV_LINKS.map(link => (
             <li key={link.href}>
               <a href={link.href}
@@ -98,36 +113,38 @@ export default function Navbar() {
           ))}
         </ul>
 
-        {/* Desktop Auth */}
+        {/* ── Desktop Auth ── */}
         <div className="hidden md:flex items-center gap-4">
-          <a href="#" className="text-sm font-medium text-gray-700 hover:text-teal-500 transition-colors">
+          <a href="/signin" className="text-sm font-medium text-gray-700 hover:text-teal-500 transition-colors">
             Sign-In
           </a>
-          <a href="#" className="btn-shimmer text-white text-sm font-semibold px-5 py-2 rounded-lg">
+          <a href="/signup" className="btn-shimmer text-white text-sm font-semibold px-5 py-2 rounded-lg">
             Sign up
           </a>
         </div>
 
-        {/* Mobile Hamburger */}
+        {/* Hamburger for Mobile*/}
         <button
           className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
           onClick={() => setMobileOpen(o => !o)}
           aria-label="Toggle menu"
         >
-          <span className={`block w-5 h-0.5 bg-gray-800 transition-all duration-200 mb-1.5
-            ${mobileOpen ? 'rotate-45 translate-y-2' : ''}`} />
-          <span className={`block w-5 h-0.5 bg-gray-800 transition-all duration-200 mb-1.5
-            ${mobileOpen ? 'opacity-0 scale-x-0' : ''}`} />
-          <span className={`block w-5 h-0.5 bg-gray-800 transition-all duration-200
-            ${mobileOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+          <span className={`block w-5 h-0.5 bg-gray-800 transition-all duration-200 mb-1.5 ${mobileOpen ? 'rotate-45 translate-y-2' : ''}`} />
+          <span className={`block w-5 h-0.5 bg-gray-800 transition-all duration-200 mb-1.5 ${mobileOpen ? 'opacity-0 scale-x-0' : ''}`} />
+          <span className={`block w-5 h-0.5 bg-gray-800 transition-all duration-200 ${mobileOpen ? '-rotate-45 -translate-y-2' : ''}`} />
         </button>
       </nav>
 
-      {/* Mobile Drawer */}
+      {/* Drawer */}
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 top-14 bg-white z-40 px-4 py-6 flex flex-col gap-1 animate-fadeIn overflow-y-auto">
-          <a href="#" className="block py-3 px-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-teal-50 hover:text-teal-600 border-b border-gray-100 transition-colors"
-            onClick={() => setMobileOpen(false)}>About App</a>
+          {ABOUT_ITEMS.map(item => (
+            <a key={item.href} href={item.href}
+              onClick={() => setMobileOpen(false)}
+              className="block py-3 px-3 text-sm font-medium text-gray-500 rounded-lg hover:bg-teal-50 hover:text-teal-600 transition-colors pl-6">
+              {item.label}
+            </a>
+          ))}
           {NAV_LINKS.map(link => (
             <a key={link.href} href={link.href}
               onClick={() => setMobileOpen(false)}
@@ -136,10 +153,10 @@ export default function Navbar() {
             </a>
           ))}
           <div className="flex gap-3 mt-6">
-            <a href="#" className="flex-1 text-center py-3 text-sm font-semibold text-gray-700 border border-gray-200 rounded-xl hover:border-teal-400 hover:text-teal-600 transition-colors">
+            <a href="/signin" className="flex-1 text-center py-3 text-sm font-semibold text-gray-700 border border-gray-200 rounded-xl hover:border-teal-400 hover:text-teal-600 transition-colors">
               Sign-In
             </a>
-            <a href="#" className="flex-1 text-center py-3 text-sm font-semibold text-white rounded-xl btn-shimmer">
+            <a href="/signup" className="flex-1 text-center py-3 text-sm font-semibold text-white rounded-xl btn-shimmer">
               Sign up
             </a>
           </div>

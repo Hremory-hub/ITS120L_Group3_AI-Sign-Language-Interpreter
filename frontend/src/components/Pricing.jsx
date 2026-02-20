@@ -4,26 +4,26 @@ const PLANS = [
   {
     name:  'Free',
     price: { monthly: 0,  annual: 0  },
-    desc:  'Perfect for individual teachers exploring inclusive tools.',
-    features: ['1 active session at a time', 'ASL & BSL support', '30-min session limit', 'Basic transcript export'],
+    desc:  'Great for trying out the core features of KamAI.',
+    features: ['1 active session at a time', 'Sign Language Alphabet', '5 Class Profiles', 'Basic transcript export', ' Email support'],
     cta: 'Get Started Free',
     highlight: false,
   },
   {
-    name:  'Classroom',
-    price: { monthly: 29, annual: 22 },
-    desc:  'Everything a school classroom needs to go fully inclusive.',
-    features: ['Unlimited sessions', '40+ sign languages', 'Google Classroom integration', 'Full transcript history', 'Priority support'],
+    name:  'Professional',
+    price: { monthly: 97, annual: 873 },
+    desc:  'Ideal for regular classroom and professional use.',
+    features: ['Unlimited sessions', 'Speech to Sign Language', '15 Class Profiles', 'Full transcript history', 'Priority support'],
     cta: 'Start Free Trial',
     highlight: true,
     badge: 'Most Popular',
   },
   {
-    name:  'Institution',
-    price: { monthly: 99, annual: 79 },
-    desc:  'School-wide or district-wide deployment with admin controls.',
-    features: ['Everything in Classroom', 'Unlimited classrooms', 'Admin dashboard', 'SSO / SAML support', 'Custom onboarding', 'Dedicated account manager'],
-    cta: 'Contact Sales',
+    name:  'Enterprise',
+    price: { monthly: 257, annual: 2313 },
+    desc:  'Best for scaling classrooms and faculty environments.',
+    features: ['Everything in Classroom', 'Unlimited classrooms', 'Design System Foundation', 'Custom Vocabolary', 'Variants & Properties'],
+    cta: 'Contact Sales', // sa sunod nalang contact sales page. for now it can just link to #
     highlight: false,
   },
 ]
@@ -91,7 +91,7 @@ export default function Pricing() {
               <div className="mb-6 sm:mb-8">
                 <span style={{ fontFamily: 'var(--font-display)' }}
                   className={`font-black text-4xl sm:text-5xl ${plan.highlight ? 'text-white' : 'text-gray-900'}`}>
-                  ${annual ? plan.price.annual : plan.price.monthly}
+                  ₱{annual ? plan.price.annual : plan.price.monthly}
                 </span>
                 <span className={`text-sm ml-1 ${plan.highlight ? 'text-teal-100' : 'text-gray-400'}`}>/mo</span>
               </div>

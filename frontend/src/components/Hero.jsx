@@ -81,7 +81,7 @@ export default function Hero() {
               Bridging communication gaps in real time.
             </p>
 
-            {/* CTAs */}
+            {/* CTA */}
             <div className={`flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4
               ${visible ? 'animate-fadeUp' : 'opacity-0'} delay-300`}>
               <a href="#" className="btn-shimmer w-full sm:w-auto text-white font-semibold text-base
@@ -107,12 +107,11 @@ export default function Hero() {
               </a>
             </div>
 
-            {/* Stats */}
+            {/* Stats placeholder and shit */}
             <div className={`flex flex-wrap justify-center md:justify-start gap-6 sm:gap-8 pt-2
               ${visible ? 'animate-fadeUp' : 'opacity-0'} delay-400`}>
-              <StatCard value={12000} suffix="+" label="Students Reached" animate={visible} delay="400ms" />
-              <StatCard value={98}    suffix="%" label="Accuracy Rate"    animate={visible} delay="500ms" />
-              <StatCard value={40}    suffix="+" label="Sign Languages"   animate={visible} delay="600ms" />
+              <StatCard value={100} suffix="+" label="Students Reached" animate={visible} delay="400ms" />
+              <StatCard value={95}    suffix="%" label="Accuracy Rate"    animate={visible} delay="500ms" />
             </div>
           </div>
 
@@ -128,7 +127,7 @@ export default function Hero() {
             {/* Main image */}
             <div className="relative hero-clip overflow-hidden shadow-2xl">
               <img
-                src="https://images.unsplash.com/photo-1588072432836-e10032774350?w=900&q=80"
+                src="https://images.unsplash.com/photo-1588072432836-e10032774350?w=900&q=80" // no need lagay pic sa assets 
                 alt="Children learning sign language in an inclusive classroom"
                 className="w-full h-56 xs:h-72 sm:h-80 md:h-[420px] lg:h-[500px] xl:h-[540px] object-cover"
               />
