@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { auth } from '../firebase'
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendEmailVerification } from 'firebase/auth'
+import { navigate } from '../utils/navigate'
 
 function GoogleIcon() {
   return (
@@ -15,17 +18,66 @@ export default function SignIn() {
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
+  const [error,    setError]    = useState('')
+  const [loading,  setLoading]  = useState(false)
+
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, password)
+
+      // ✅ Check if email is verified
+      if (!cred.user.emailVerified) {
+        // Send a fresh verification email and redirect to verify page
+        await sendEmailVerification(cred.user)
+        navigate('/verify-email')
+        return
+      }
+
+      navigate('/dashboard')
+    } catch (err) {
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+        setError('Incorrect email or password. Please try again.')
+      } else if (err.code === 'auth/user-not-found') {
+        setError('No account found with this email.')
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Too many failed attempts. Please try again later.')
+      } else {
+        setError(err.message)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogle = async () => {
+    setError('')
+    setLoading(true)
+    try {
+      const provider = new GoogleAuthProvider()
+      const cred = await signInWithPopup(auth, provider)
+      // Google accounts are pre-verified
+      if (cred.user.emailVerified) {
+        navigate('/dashboard')
+      } else {
+        navigate('/verify-email')
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white flex">
 
-      {/* ── Left panel: image + branding ── */}
+      {/* ── Left panel ── */}
       <div className="hidden lg:flex w-1/2 relative items-end p-12 overflow-hidden bg-gray-50">
-        {/* Stacked image cards */}
         <div className="relative w-full h-full flex items-center justify-center">
-          {/* Back card */}
           <div className="absolute w-72 h-[420px] rounded-3xl bg-teal-200/60 rotate-3 translate-x-4 translate-y-2" />
-          {/* Main image card */}
           <div className="relative w-72 h-[420px] rounded-3xl overflow-hidden shadow-2xl">
             <img
               src="https://images.unsplash.com/photo-1594608661623-aa0bd3a69d98?w=600&q=80"
@@ -33,7 +85,6 @@ export default function SignIn() {
               className="w-full h-full object-cover"
             />
           </div>
-          {/* Branding below */}
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3">
             <img src="/assets/logo.png" alt="KamAI" className="h-10 w-auto"
               onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }} />
@@ -45,7 +96,7 @@ export default function SignIn() {
         </div>
       </div>
 
-      {/* ── Right panel: form ── */}
+      {/* ── Right panel ── */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-8 py-12">
         <div className="w-full max-w-md">
 
@@ -103,11 +154,20 @@ export default function SignIn() {
               <a href="#" className="text-xs text-teal-600 hover:underline">Forgot password?</a>
             </div>
 
+            {/* Error */}
+            {error && (
+              <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4 text-sm text-red-600">
+                {error}
+              </div>
+            )}
+
             {/* Login button */}
             <button
-              className="w-full btn-shimmer text-white font-semibold py-3 rounded-xl text-sm mb-5 transition-all"
+              onClick={handleLogin}
+              disabled={loading}
+              className="w-full btn-shimmer text-white font-semibold py-3 rounded-xl text-sm mb-5 transition-all disabled:opacity-60"
             >
-              Login to KamAI
+              {loading ? 'Signing in...' : 'Login to KamAI'}
             </button>
 
             {/* Divider */}
@@ -118,9 +178,12 @@ export default function SignIn() {
             </div>
 
             {/* Google */}
-            <button className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl
-              border border-gray-200 text-sm font-medium text-gray-700
-              hover:bg-gray-50 hover:border-gray-300 transition-all mb-6">
+            <button
+              onClick={handleGoogle}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl
+                border border-gray-200 text-sm font-medium text-gray-700
+                hover:bg-gray-50 hover:border-gray-300 transition-all mb-6 disabled:opacity-60">
               <GoogleIcon />
               Google
             </button>
