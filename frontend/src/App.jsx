@@ -8,6 +8,8 @@ import AboutOverview    from './pages/AboutOverview'
 import AboutHowItWorks  from './pages/AboutHowItWorks'
 import SignIn           from './pages/SignIn'
 import SignUp           from './pages/SignUp'
+import VerifyEmail from './pages/VerifyEmail'
+
 
 function HomePage() {
   return (
@@ -30,7 +32,6 @@ function useRoute() {
     const handler = () => setPath(window.location.pathname)
     window.addEventListener('popstate', handler)
 
-    // Intercept link clicks
     const onClick = (e) => {
       const a = e.target.closest('a[href]')
       if (!a) return
@@ -51,10 +52,16 @@ function useRoute() {
   return path
 }
 
+// Add this helper function (outside the App component)
+export function navigate(path) {
+  window.history.pushState(null, '', path)
+  window.dispatchEvent(new PopStateEvent('popstate'))
+}
+
 export default function App() {
   const path = useRoute()
-
-  if (path === '/about/overview')    return <AboutOverview />
+  if (path === '/verify-email') return <VerifyEmail />
+  if (path === '/about/overview')     return <AboutOverview />
   if (path === '/about/how-it-works') return <AboutHowItWorks />
   if (path === '/signin')             return <SignIn />
   if (path === '/signup')             return <SignUp />

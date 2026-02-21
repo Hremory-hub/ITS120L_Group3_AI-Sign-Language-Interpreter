@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { auth } from '../firebase'
+import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup, sendEmailVerification } from 'firebase/auth'
+import { navigate } from '../utils/navigate'
 
 function GoogleIcon() {
   return (
@@ -12,33 +15,102 @@ function GoogleIcon() {
 }
 
 export default function SignUp() {
-  const [form, setForm] = useState({
-    email: '', password: '', firstName: '', lastName: ''
-  })
+  const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '' })
   const [showPass, setShowPass] = useState(false)
+  const [error,    setError]    = useState('')
+  const [loading,  setLoading]  = useState(false)
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const handleSignUp = async () => {
+    setError('')
+
+    // Basic validation
+    if (!form.firstName || !form.lastName) {
+      setError('Please enter your first and last name.')
+      return
+    }
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, form.email, form.password)
+
+      // Save display name
+      await updateProfile(cred.user, {
+        displayName: `${form.firstName} ${form.lastName}`
+      })
+
+      // ✅ Send verification email right after signup
+      await sendEmailVerification(cred.user)
+
+      // Redirect to verify page
+      navigate('/verify-email')
+    } catch (err) {
+      if (err.code === 'auth/email-already-in-use') {
+        setError('An account with this email already exists. Try signing in.')
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.')
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password is too weak. Use at least 6 characters.')
+      } else {
+        setError(err.message)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogle = async () => {
+    setError('')
+    setLoading(true)
+    try {
+      const provider = new GoogleAuthProvider()
+      const cred = await signInWithPopup(auth, provider)
+      // Google accounts are already verified
+      if (cred.user.emailVerified) {
+        navigate('/dashboard')
+      } else {
+        navigate('/verify-email')
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white flex">
 
-      {/* Left panel */}
-      <div className="hidden lg:flex w-1/2 relative items-center justify-center overflow-hidden bg-gray-50">
-        {/*container */}
-        <div className="relative w-[80%] h-[70%] select-none flex items-center justify-center select-none">
-            
-            {/* Back card*/}
-              <div className="absolute inset-1 rounded-3xl bg-teal-200/60 rotate-3 translate-x-1 translate-y-2 z-0" /> 
-            {/* Pic*/} 
-            <div className="rounded-3xl overflow-hidden shadow-2xl z-10" style={{ left: '25%', top: '10%', width: '90%', height: '70%' }}> 
-              <img src="https://images.pexels.com/photos/8422142/pexels-photo-8422142.jpeg?_gl=1*prjyo3*_ga*OTI5NjI5NjAxLjE3NzAzNzIyMzA.*_ga_
-              8JE65Q40S6*czE3NzE2NjA3ODEkbzIkZzEkdDE3NzE2NjA4ODMkajYwJGwwJGgw"
-               alt="mga batang nag gagang sign" 
-               className="w-full h-full object-cover select-none" 
-             /> 
-            </div>
+      {/* ── Left panel: decorative hands illustration ── */}
+      <div className="hidden lg:flex w-1/2 relative items-center justify-center overflow-hidden bg-white">
+        {/* Large hand blobs — matching Figma art direction */}
+        <div className="relative w-full h-full flex items-center justify-center select-none">
+          {/* Big back hand */}
+          <div className="absolute" style={{ left: '5%', top: '10%', width: '65%', height: '70%' }}>
+            <svg viewBox="0 0 300 380" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full opacity-90">
+              <path d="M60 340 C20 300 10 220 30 160 C50 100 80 60 110 40 C130 28 150 30 160 50 C170 70 165 100 150 120 C180 90 210 70 230 80 C255 92 258 130 240 160 C260 140 285 138 295 158 C308 182 295 220 270 245 C280 235 295 240 298 260 C302 285 282 315 255 330 C230 344 190 350 155 348 C120 346 85 355 60 340Z" fill="#2AABAC" fillOpacity="0.85"/>
+              {/* Texture dots */}
+              {[...Array(30)].map((_, i) => (
+                <circle key={i} cx={80 + (i % 6) * 30 + Math.sin(i) * 10} cy={100 + Math.floor(i/6) * 40 + Math.cos(i*2)*8} r="3" fill="white" fillOpacity="0.25"/>
+              ))}
+            </svg>
+          </div>
+          {/* Smaller front hand */}
+          <div className="absolute" style={{ right: '5%', bottom: '12%', width: '45%', height: '50%' }}>
+            <svg viewBox="0 0 240 300" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full opacity-75">
+              <path d="M50 270 C20 240 15 175 30 125 C45 75 70 45 95 30 C115 18 132 22 140 42 C148 60 142 88 128 105 C152 78 178 60 196 68 C218 78 220 112 204 138 C220 120 240 118 248 136 C258 158 246 192 224 214 C212 205 220 218 222 234 C225 256 208 278 186 290 C164 302 132 306 105 304 C78 302 62 284 50 270Z" fill="#2AABAC" fillOpacity="0.55"/>
+              {[...Array(15)].map((_, i) => (
+                <circle key={i} cx={70 + (i % 4) * 28 + Math.sin(i)*8} cy={80 + Math.floor(i/4) * 45} r="2.5" fill="white" fillOpacity="0.3"/>
+              ))}
+            </svg>
+          </div>
 
           {/* KamAI wordmark */}
-          <div className="absolute bottom-7 left-12 flex items-center gap-3">
+          <div className="absolute bottom-12 left-12 flex items-center gap-3">
             <img src="/assets/logo.png" alt="KamAI" className="h-12 w-auto"
               onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block' }} />
             <span style={{ display:'none', fontFamily: 'var(--font-display)' }} className="font-bold text-3xl text-gray-900">🤟</span>
@@ -47,7 +119,7 @@ export default function SignUp() {
         </div>
       </div>
 
-      {/* ── Right panel: form ── */}
+      {/* ── Right panel ── */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-8 py-12">
         <div className="w-full max-w-md">
 
@@ -68,14 +140,17 @@ export default function SignUp() {
             </h1>
 
             {/* Google */}
-            <button className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-xl
-              border border-gray-200 text-sm font-medium text-gray-700
-              hover:bg-gray-50 hover:border-gray-300 transition-all mb-6">
+            <button
+              onClick={handleGoogle}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-xl
+                border border-gray-200 text-sm font-medium text-gray-700
+                hover:bg-gray-50 hover:border-gray-300 transition-all mb-6 disabled:opacity-60">
               <GoogleIcon />
               Continue with Google
             </button>
 
-            {/* Or divider */}
+            {/* Divider */}
             <div className="flex items-center gap-3 mb-6">
               <div className="flex-1 h-px bg-gray-300" />
               <span className="text-sm font-medium text-gray-500">Or</span>
@@ -85,7 +160,7 @@ export default function SignUp() {
             {/* Fields */}
             <div className="space-y-3 mb-6">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Email or Phone</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Email</label>
                 <input
                   type="email"
                   value={form.email}
@@ -115,6 +190,7 @@ export default function SignUp() {
                     }
                   </button>
                 </div>
+                <p className="text-xs text-gray-400 mt-1">Minimum 6 characters</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -141,9 +217,20 @@ export default function SignUp() {
               </div>
             </div>
 
+            {/* Error */}
+            {error && (
+              <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4 text-sm text-red-600">
+                {error}
+              </div>
+            )}
+
             {/* Submit */}
-            <button className="w-full btn-shimmer text-white font-semibold py-3.5 rounded-xl text-sm mb-5">
-              Create Account
+            <button
+              onClick={handleSignUp}
+              disabled={loading}
+              className="w-full btn-shimmer text-white font-semibold py-3.5 rounded-xl text-sm mb-5 disabled:opacity-60"
+            >
+              {loading ? 'Creating account...' : 'Create Account'}
             </button>
 
             {/* Already have account */}
