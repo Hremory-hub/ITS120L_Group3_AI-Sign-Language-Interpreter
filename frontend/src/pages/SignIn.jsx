@@ -21,6 +21,8 @@ export default function SignIn() {
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
 
+  // Firebase logic
+
   const handleLogin = async (e) => {
     e.preventDefault()
     setError('')
@@ -28,7 +30,7 @@ export default function SignIn() {
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password)
 
-      // ✅ Check if email is verified
+      // Check if email is verified
       if (!cred.user.emailVerified) {
         // Send a fresh verification email and redirect to verify page
         await sendEmailVerification(cred.user)
@@ -74,7 +76,7 @@ export default function SignIn() {
   return (
     <div className="min-h-screen bg-white flex">
 
-      {/* ── Left panel: image + branding ── */}
+      {/* Left panel: image + branding */}
       <div className="hidden lg:flex w-1/2 relative items-end p-12 overflow-hidden bg-gray-50">
         <div className="relative w-full h-full flex items-center justify-center">
           <div className="absolute w-72 h-[420px] rounded-3xl bg-teal-200/60 rotate-3 translate-x-4 translate-y-2" />
@@ -85,7 +87,7 @@ export default function SignIn() {
               className="w-full h-full object-cover"
             />
           </div>
-          {/* Branding below */}
+          {/* kamAI */}
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3">
             <img src="/assets/logo.png" alt="KamAI" className="h-10 w-auto"
               onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }} />
@@ -97,7 +99,7 @@ export default function SignIn() {
         </div>
       </div>
 
-      {/* ── Right panel: form ── */}
+      {/* Right panel: form */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-8 py-12">
         <div className="w-full max-w-md">
 

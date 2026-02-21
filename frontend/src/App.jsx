@@ -1,17 +1,28 @@
 import { useState, useEffect } from 'react'
-import Navbar   from './components/Navbar'
-import Hero     from './components/Hero'
-import Features from './components/Features'
-import Pricing  from './components/Pricing'
-import Footer   from './components/Footer'
-import AboutOverview    from './pages/AboutOverview'
-import AboutHowItWorks  from './pages/AboutHowItWorks'
-import SignIn           from './pages/SignIn'
-import SignUp           from './pages/SignUp'
-import VerifyEmail from './pages/VerifyEmail'
-
+import Navbar             from './components/Navbar'
+import Hero               from './components/Hero'
+import Features           from './components/Features'
+import Pricing            from './components/Pricing'
+import Footer             from './components/Footer'
+import AboutOverview      from './pages/AboutOverview'
+import AboutHowItWorks    from './pages/AboutHowItWorks'
+import SignIn             from './pages/SignIn'
+import SignUp             from './pages/SignUp'
+import Help               from './pages/Help'
+import Profile            from './pages/Profile'
+import Dashboard          from './pages/Dashboard'
 
 function HomePage() {
+  useEffect(() => {
+    const hash = window.location.hash.slice(1)
+    if (!hash) return
+    const t = setTimeout(() => {
+      const el = document.getElementById(hash)
+      if (el) el.scrollIntoView({ behavior: 'smooth' })
+    }, 80)
+    return () => clearTimeout(t)
+  }, [])
+
   return (
     <div className="font-body">
       <Navbar activePage="/" />
@@ -25,45 +36,55 @@ function HomePage() {
   )
 }
 
-// client-side router 
 function useRoute() {
   const [path, setPath] = useState(window.location.pathname)
+
   useEffect(() => {
-    const handler = () => setPath(window.location.pathname)
-    window.addEventListener('popstate', handler)
+    const onPop = () => setPath(window.location.pathname)
+    window.addEventListener('popstate', onPop)
 
     const onClick = (e) => {
       const a = e.target.closest('a[href]')
       if (!a) return
       const href = a.getAttribute('href')
-      if (href && href.startsWith('/') && !href.startsWith('//')) {
+      if (!href) return
+
+      if (href.startsWith('/#')) {
+        if (window.location.pathname !== '/') {
+          e.preventDefault()
+          window.history.pushState(null, '', href)
+          setPath('/')
+        }
+        return
+      }
+
+      if (href.startsWith('/') && !href.startsWith('//')) {
         e.preventDefault()
         window.history.pushState(null, '', href)
         setPath(href)
         window.scrollTo(0, 0)
       }
     }
+
     document.addEventListener('click', onClick)
     return () => {
-      window.removeEventListener('popstate', handler)
+      window.removeEventListener('popstate', onPop)
       document.removeEventListener('click', onClick)
     }
   }, [])
-  return path
-}
 
-// Add this helper function (outside the App component)
-export function navigate(path) {
-  window.history.pushState(null, '', path)
-  window.dispatchEvent(new PopStateEvent('popstate'))
+  return path
 }
 
 export default function App() {
   const path = useRoute()
-  if (path === '/verify-email') return <VerifyEmail />
+
   if (path === '/about/overview')     return <AboutOverview />
   if (path === '/about/how-it-works') return <AboutHowItWorks />
   if (path === '/signin')             return <SignIn />
   if (path === '/signup')             return <SignUp />
+  if (path === '/help')               return <Help />
+  if (path === '/profile')            return <Profile />
+  if (path === '/dashboard')          return <Dashboard />
   return <HomePage />
 }
