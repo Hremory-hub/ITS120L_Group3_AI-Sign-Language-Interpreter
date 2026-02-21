@@ -19,7 +19,7 @@ export default function SignIn() {
   return (
     <div className="min-h-screen bg-white flex">
 
-      {/* ── Left panel: image + branding ── */}
+      {/* Left panel: image + branding */}
       <div className="hidden lg:flex w-1/2 relative items-end p-12 overflow-hidden bg-gray-50">
         {/* Stacked image cards */}
         <div className="relative w-full h-full flex items-center justify-center">
@@ -33,7 +33,7 @@ export default function SignIn() {
               className="w-full h-full object-cover"
             />
           </div>
-          {/* Branding below */}
+          {/* KamAI*/}
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3">
             <img src="/assets/logo.png" alt="KamAI" className="h-10 w-auto"
               onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }} />
@@ -45,7 +45,7 @@ export default function SignIn() {
         </div>
       </div>
 
-      {/* ── Right panel: form ── */}
+      {/* Right panel: form */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-8 py-12">
         <div className="w-full max-w-md">
 
