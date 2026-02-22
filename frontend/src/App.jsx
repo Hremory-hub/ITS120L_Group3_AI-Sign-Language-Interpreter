@@ -11,6 +11,7 @@ import SignUp             from './pages/SignUp'
 import Help               from './pages/Help'
 import Profile            from './pages/Profile'
 import Dashboard          from './pages/Dashboard'
+import SignToText         from './pages/SignToText'
 
 function HomePage() {
   useEffect(() => {
@@ -86,5 +87,6 @@ export default function App() {
   if (path === '/help')               return <Help />
   if (path === '/profile')            return <Profile />
   if (path === '/dashboard')          return <Dashboard />
+  if (path === '/session/sign-to-text') return <SignToText />
   return <HomePage />
 }

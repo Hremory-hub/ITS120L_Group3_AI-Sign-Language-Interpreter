@@ -5,7 +5,7 @@ import numpy as np
 from tensorflow.keras.preprocessing import image
 import sys
 
-MODEL_PATH = "models/asl_model_finetuned.keras"
+MODEL_PATH = "models/asl_model_finetuned.h5"
 IMG_SIZE = (224, 224)
 
 # Load model
@@ -18,7 +18,7 @@ img_path = sys.argv[1]
 img = image.load_img(img_path, target_size=IMG_SIZE)
 img_array = image.img_to_array(img)
 img_array = np.expand_dims(img_array, axis=0)
-img_array = img_array / 255.0
+img_array = preprocess_input(img_array)
 
 # Predict
 predictions = model.predict(img_array)

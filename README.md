@@ -31,12 +31,18 @@ venv\Scripts\activate
 ### 2. Install dependencies
 ```
 pip install -r requirements.txt
+pip install fastapi uvicorn sqlalchemy pymysql
+pip install python-multipart
+pip install cryptography
+pip install pymysql==1.1.1 firebase-admin==6.5.0
 ```
 
 ### HOW TO RUN:
 
 ```
-- uvicorn main:app --reload
+cd KamAI/backend
+venv\Scripts\activate
+uvicorn main:app --reload
 ```
 
 Open at: 
@@ -58,6 +64,42 @@ npm install
 cd KamAI/frontend
 npm run dev
 ```
+
+## Setup - CREATING DOCKER CONTAINER (MYSQL8)
+
+**• PREQUISITE:** Docker
+
+https://www.docker.com/
+
+### 1. Open CMD
+
+**Using CMD:**
+```
+docker run -d ^
+  --name mysql-ai ^
+  -e MYSQL_ROOT_PASSWORD=root ^
+  -e MYSQL_DATABASE=ai_app ^
+  -p 3307:3306 ^
+  mysql:8
+```
+
+### 2. Sanity Check
+
+**Using CMD:**
+```
+docker ps
+```
+
+### HOW TO RUN:
+
+Just Start on Docker instead
+
+## Firebase token verification + auto-provisioning of MySQL user rows.
+
+Setup:
+  1. Go to Firebase Console → Project Settings → Service Accounts
+  2. Click "Generate new private key" → save as backend/serviceAccountKey.json
+  3. OR set env var:  GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json
 
 
 ## Train
