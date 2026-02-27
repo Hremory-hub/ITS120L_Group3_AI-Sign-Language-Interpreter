@@ -31,15 +31,15 @@ venv\Scripts\activate
 ### 2. Install dependencies
 ```
 pip install -r requirements.txt
-pip install fastapi uvicorn sqlalchemy pymysql
-pip install python-multipart
-pip install cryptography
-pip install pymysql==1.1.1 firebase-admin==6.5.0
-pip install opencv-python
-pip install mediapipe==0.10.14
-pip install pandas
-pip uninstall tensorflow mediapipe protobuf -y # Need uninstall muna
-pip install tensorflow==2.16.1 mediapipe==0.10.14 protobuf==4.25.3
+```
+
+**TO REMOVE UNUSED/OLD DEPENDENCIES:**
+1. Make sure you are in KamAI directory
+2. Remove backend\venv
+3. Using CMD, run:
+```
+python -m venv venv
+pip install -r requirements.txt
 ```
 
 ### HOW TO RUN:
