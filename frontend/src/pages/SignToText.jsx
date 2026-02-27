@@ -5,7 +5,7 @@ import { createSession, updateSession } from '../api'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 
-const API_BASE           = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+const API_BASE          = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const CAPTURE_INTERVAL   = 800    // ms between frames sent to /predict/
 const MIN_CONFIDENCE     = 0.75   // ignore predictions below this
 const REPEATS_TO_CONFIRM = 2      // consecutive same predictions needed to confirm a letter
@@ -17,17 +17,17 @@ export default function SignToText() {
   const streamRef   = useRef(null)
 
   // Consecutive repeat tracking — use refs so interval closure always sees latest
-  const lastLetterRef  = useRef(null)
-  const repeatCountRef = useRef(0)
-  const wordCountRef   = useRef(0)
-  const sessionIdRef   = useRef(null)
+  const lastLetterRef   = useRef(null)
+  const repeatCountRef  = useRef(0)
+  const wordCountRef    = useRef(0)
+  const sessionIdRef    = useRef(null)
   const sessionStartRef = useRef(null)
 
-  const [user,       setUser]       = useState(null)
-  const [camReady,   setCamReady]   = useState(false)
-  const [camError,   setCamError]   = useState('')
-  const [running,    setRunning]    = useState(false)
-  const [predicting, setPredicting] = useState(false)
+  const [user,        setUser]        = useState(null)
+  const [camReady,    setCamReady]    = useState(false)
+  const [camError,    setCamError]    = useState('')
+  const [running,     setRunning]     = useState(false)
+  const [predicting,  setPredicting]  = useState(false)
 
   const [currentLetter, setCurrentLetter] = useState(null)
   const [confidence,    setConfidence]    = useState(0)
@@ -107,15 +107,18 @@ export default function SignToText() {
         setCurrentLetter(letter)
         setConfidence(conf)
 
-        if (conf >= MIN_CONFIDENCE) {
+        if (letter === "None" || conf < MIN_CONFIDENCE) {
+          lastLetterRef.current = null
+          repeatCountRef.current = 0
+        } else {
           if (letter === lastLetterRef.current) {
             repeatCountRef.current += 1
-            // Confirmed — append to pending word
             if (repeatCountRef.current === REPEATS_TO_CONFIRM) {
               setPendingWord(w => w + letter)
+              repeatCountRef.current = 0
             }
           } else {
-            lastLetterRef.current  = letter
+            lastLetterRef.current = letter
             repeatCountRef.current = 1
           }
         }
@@ -126,7 +129,7 @@ export default function SignToText() {
       }
     }, 'image/jpeg', 0.85)
   }, [])
-
+  
   // ── Start ──────────────────────────────────────────────────────────────────
   const handleStart = async () => {
     if (!camReady) return
