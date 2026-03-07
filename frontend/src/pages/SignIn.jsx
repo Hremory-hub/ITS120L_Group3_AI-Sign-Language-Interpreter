@@ -38,7 +38,13 @@ export default function SignIn() {
         return
       }
 
-      navigate('/dashboard')
+      const redirect = sessionStorage.getItem('kamai_post_verify_redirect')
+      if (redirect) {
+        sessionStorage.removeItem('kamai_post_verify_redirect')
+        navigate(redirect)
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err) {
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
         setError('Incorrect email or password. Please try again.')
@@ -62,7 +68,13 @@ export default function SignIn() {
       const cred = await signInWithPopup(auth, provider)
       // Google accounts are pre-verified
       if (cred.user.emailVerified) {
-        navigate('/dashboard')
+        const redirect = sessionStorage.getItem('kamai_post_verify_redirect')
+        if (redirect) {
+          sessionStorage.removeItem('kamai_post_verify_redirect')
+          navigate(redirect)
+        } else {
+          navigate('/dashboard')
+        }
       } else {
         navigate('/verify-email')
       }

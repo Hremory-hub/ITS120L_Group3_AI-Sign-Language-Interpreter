@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { auth } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
-import { getStats, getSessions } from '../api'
+import { getStats, getSessions, getMySubscription } from '../api'
+import CheckoutModal from '../components/CheckoutModal'
 import { navigate } from '../utils/navigate'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -101,6 +102,8 @@ export default function Dashboard() {
   const [page,         setPage]         = useState(1)
   const [activeTab,    setActiveTab]    = useState('overview')
   const [filter,       setFilter]       = useState('All')
+  const [sub,          setSub]          = useState(null)
+  const [checkoutModal,setCheckoutModal] = useState(null)
 
   const PER_PAGE = 10
 
@@ -111,6 +114,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!authUser) return
+    // Subscription tier
+    getMySubscription().then(setSub).catch(() => {})
     // Stats
     setLoadingStats(true)
     getStats().then(setStats).catch(e => console.warn('Stats:', e.message)).finally(() => setLoadingStats(false))
@@ -168,11 +173,33 @@ export default function Dashboard() {
               {name} 👋
             </h1>
             <p className="text-teal-100 text-sm">Ready to start interpreting?</p>
+            {/* Tier badge */}
+            <div className="flex items-center gap-2 mt-3">
+              {sub ? (
+                <>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full
+                    ${sub.tier === 'enterprise'   ? 'bg-violet-400/30 text-violet-100 border border-violet-300/40' :
+                      sub.tier === 'professional' ? 'bg-teal-300/30 text-teal-100 border border-teal-300/40' :
+                                                    'bg-white/10 text-teal-200 border border-white/20'}`}>
+                    {sub.tier ? sub.tier.charAt(0).toUpperCase() + sub.tier.slice(1) : 'Free'} Plan
+                  </span>
+                  {sub.tier === 'free' && (
+                    <button
+                      onClick={() => setCheckoutModal({ tier: 'professional', period: 'monthly' })}
+                      className="text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors underline underline-offset-2">
+                      Upgrade →
+                    </button>
+                  )}
+                </>
+              ) : (
+                <span className="text-xs text-teal-300">Loading plan…</span>
+              )}
+            </div>
           </div>
           <div className="flex gap-6 sm:gap-8">
             <StatPill label="Sessions" value={stats?.total_sessions} loading={loadingStats} />
             <StatPill label="Minutes"  value={stats?.total_minutes}  loading={loadingStats} />
-            <StatPill label="Words"    value={stats?.total_words != null ? `${(stats.total_words/1000).toFixed(1)}k` : null} loading={loadingStats} />
+            <StatPill label="Words"    value={stats?.total_words != null ? `${stats.total_words.toLocaleString()} words` : null} loading={loadingStats} />
           </div>
         </div>
 
@@ -274,6 +301,18 @@ export default function Dashboard() {
         )}
       </main>
       <Footer />
+
+      {checkoutModal && (
+        <CheckoutModal
+          tier={checkoutModal.tier}
+          period={checkoutModal.period}
+          onClose={() => setCheckoutModal(null)}
+          onSuccess={async () => {
+            setCheckoutModal(null)
+            try { setSub(await getMySubscription()) } catch {}
+          }}
+        />
+      )}
     </div>
   )
 }

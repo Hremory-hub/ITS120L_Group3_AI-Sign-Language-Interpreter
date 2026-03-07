@@ -1,35 +1,40 @@
 import { useState } from 'react'
+import CheckoutModal from './CheckoutModal'
 
 const PLANS = [
   {
+    id:    'free',
     name:  'Free',
-    price: { monthly: 0,  annual: 0  },
+    price: { monthly: 0, annual: 0 },
     desc:  'Great for trying out the core features of KamAI.',
-    features: ['1 active session at a time', 'Sign Language Alphabet', '5 Class Profiles', 'Basic transcript export', ' Email support'],
-    cta: 'Get Started Free',
+    features: ['1 active session at a time', 'Sign Language Alphabet', '5 Class Profiles', 'Basic transcript export', 'Email support'],
+    cta:       'Get Started Free',
     highlight: false,
   },
   {
+    id:    'professional',
     name:  'Professional',
-    price: { monthly: 97, annual: 873 },
+    price: { monthly: 100, annual: 900 },
     desc:  'Ideal for regular classroom and professional use.',
     features: ['Unlimited sessions', 'Speech to Sign Language', '15 Class Profiles', 'Full transcript history', 'Priority support'],
-    cta: 'Start Free Trial',
+    cta:       'Get Professional',
     highlight: true,
-    badge: 'Most Popular',
+    badge:     'Most Popular',
   },
   {
+    id:    'enterprise',
     name:  'Enterprise',
-    price: { monthly: 257, annual: 2313 },
+    price: { monthly: 260, annual: 2340 },
     desc:  'Best for scaling classrooms and faculty environments.',
-    features: ['Everything in Classroom', 'Unlimited classrooms', 'Design System Foundation', 'Custom Vocabolary', 'Variants & Properties'],
-    cta: 'Contact Sales', // sa sunod nalang contact sales page. for now it can just link to #
+    features: ['Everything in Professional', 'Unlimited classrooms', 'Design System Foundation', 'Custom Vocabulary', 'Variants & Properties'],
+    cta:       'Get Enterprise',
     highlight: false,
   },
 ]
 
 export default function Pricing() {
-  const [annual, setAnnual] = useState(false)
+  const [annual,  setAnnual]  = useState(false)
+  const [modal,   setModal]   = useState(null)   // { tier, period } | null
 
   return (
     <section id="pricing" className="py-16 sm:py-20 md:py-24 bg-white">
@@ -62,10 +67,10 @@ export default function Pricing() {
           </div>
         </div>
 
-        {/* Cards: stack on mobile, row on md+ */}
+        {/* Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-start">
           {PLANS.map((plan) => (
-            <div key={plan.name}
+            <div key={plan.id}
               className={`relative rounded-2xl p-6 sm:p-8 border transition-all duration-300
                 ${plan.highlight
                   ? 'bg-teal-500 border-teal-500 text-white shadow-2xl shadow-teal-200 md:scale-105'
@@ -93,7 +98,9 @@ export default function Pricing() {
                   className={`font-black text-4xl sm:text-5xl ${plan.highlight ? 'text-white' : 'text-gray-900'}`}>
                   ₱{annual ? plan.price.annual : plan.price.monthly}
                 </span>
-                <span className={`text-sm ml-1 ${plan.highlight ? 'text-teal-100' : 'text-gray-400'}`}>/mo</span>
+                <span className={`text-sm ml-1 ${plan.highlight ? 'text-teal-100' : 'text-gray-400'}`}>
+                  /{annual ? 'yr' : 'mo'}
+                </span>
               </div>
 
               <ul className="space-y-2.5 sm:space-y-3 mb-6 sm:mb-8">
@@ -110,17 +117,33 @@ export default function Pricing() {
                 ))}
               </ul>
 
-              <a href="#"
+              <button
+                onClick={() => setModal({ tier: plan.id, period: annual ? 'annual' : 'monthly' })}
                 className={`block w-full text-center py-3 rounded-xl text-sm font-semibold transition-all
                   ${plan.highlight
                     ? 'bg-white text-teal-600 hover:bg-teal-50'
                     : 'btn-shimmer text-white'}`}>
                 {plan.cta}
-              </a>
+              </button>
             </div>
           ))}
         </div>
+
+        <p className="text-center text-xs text-gray-400 mt-10">
+          Payments secured by <span className="font-semibold text-gray-500">PayMongo</span>
+          {' '}· Accepts GCash, Maya, Credit &amp; Debit cards
+        </p>
       </div>
+
+      {/* Checkout modal */}
+      {modal && (
+        <CheckoutModal
+          tier={modal.tier}
+          period={modal.period}
+          onClose={() => setModal(null)}
+          onSuccess={() => setModal(null)}
+        />
+      )}
     </section>
   )
 }

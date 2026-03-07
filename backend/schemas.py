@@ -64,3 +64,26 @@ class StatsOut(BaseModel):
     total_sessions: int
     total_minutes:  int
     total_words:    int
+
+
+# ── Subscription ──────────────────────────────────────────────────────────────
+
+class SubscriptionOut(BaseModel):
+    tier:           str
+    billing_period: Optional[str]    = None
+    status:         str
+    started_at:     datetime
+    expires_at:     Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+class UserOutWithTier(UserOut):
+    """UserOut extended with the subscription tier (defaults to free)."""
+    tier:   str = "free"
+    sub_status: str = "active"
+
+# ── PayMongo checkout ─────────────────────────────────────────────────────────
+
+class CreateCheckoutRequest(BaseModel):
+    tier:           str   # "professional" | "enterprise"
+    billing_period: str   # "monthly" | "annual"

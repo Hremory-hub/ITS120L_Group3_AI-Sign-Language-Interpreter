@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { auth } from '../firebase'
-import { onAuthStateChanged, updateProfile as fbUpdateProfile, updateEmail } from 'firebase/auth'
-import { getProfile, updateProfile as apiUpdateProfile, uploadAvatar } from '../api'
+import { onAuthStateChanged, updateProfile as fbUpdateProfile, updateEmail, sendPasswordResetEmail, deleteUser, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth'
+import { getProfile, updateProfile as apiUpdateProfile, uploadAvatar, getMySubscription } from '../api'
 import { PHOTO_UPDATED_EVENT } from '../components/Navbar'
+import CheckoutModal from '../components/CheckoutModal'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 
@@ -55,6 +56,20 @@ export default function Profile() {
   const [saved,    setSaved]    = useState(false)
   const [error,    setError]    = useState('')
 
+  const [sub,          setSub]          = useState(null)
+  const [checkoutModal, setCheckoutModal] = useState(null)  // { tier, period } | null
+  const [showPasswordModal,  setShowPasswordModal]  = useState(false)
+  const [showDeleteModal,    setShowDeleteModal]    = useState(false)
+  const [showManagePlanModal,setShowManagePlanModal] = useState(false)
+  // Password reset state
+  const [pwSent,    setPwSent]    = useState(false)
+  const [pwError,   setPwError]   = useState('')
+  const [pwLoading, setPwLoading] = useState(false)
+  // Delete account state
+  const [delConfirm, setDelConfirm] = useState('')
+  const [delError,   setDelError]   = useState('')
+  const [delLoading, setDelLoading] = useState(false)
+
   const [avatarFile,    setAvatarFile]    = useState(null)
   const [avatarPreview, setAvatarPreview] = useState(null)
 
@@ -89,6 +104,9 @@ export default function Profile() {
         })
       })
       .finally(() => setLoadingDB(false))
+
+    // Also load subscription tier
+    getMySubscription().then(setSub).catch(() => {})
   }, [authUser])
 
   const set = k => e => setDraft(d => ({ ...d, [k]: e.target.value }))
@@ -148,6 +166,38 @@ export default function Profile() {
           : err.message ?? 'Something went wrong.'
       )
     } finally { setSaving(false) }
+  }
+
+
+  /* ── Change Password ── */
+  const handleSendPasswordReset = async () => {
+    setPwError(''); setPwLoading(true)
+    try {
+      await sendPasswordResetEmail(auth, authUser.email)
+      setPwSent(true)
+    } catch (err) {
+      setPwError(err.message || 'Failed to send reset email.')
+    } finally { setPwLoading(false) }
+  }
+
+  /* ── Delete Account ── */
+  const handleDeleteAccount = async () => {
+    if (delConfirm !== 'DELETE') {
+      setDelError('Please type DELETE to confirm.')
+      return
+    }
+    setDelError(''); setDelLoading(true)
+    try {
+      // Delete from Firebase Auth (this also invalidates the token)
+      await deleteUser(authUser)
+      window.location.href = '/'
+    } catch (err) {
+      if (err.code === 'auth/requires-recent-login') {
+        setDelError('For security, please sign out and sign back in before deleting your account.')
+      } else {
+        setDelError(err.message || 'Failed to delete account.')
+      }
+    } finally { setDelLoading(false) }
   }
 
   const handleCancel = () => {
@@ -284,6 +334,78 @@ export default function Profile() {
           </div>
         )}
 
+
+        {/* ── Subscription / Tier card ── */}
+        <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm mb-6">
+          <div className="px-6 sm:px-8 py-5 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-teal-500">Subscription</h2>
+            {sub && (
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full
+                ${sub.tier === 'enterprise'   ? 'bg-violet-100 text-violet-700' :
+                  sub.tier === 'professional' ? 'bg-teal-100 text-teal-700' :
+                                                'bg-gray-100 text-gray-500'}`}>
+                {sub.tier ? sub.tier.charAt(0).toUpperCase() + sub.tier.slice(1) : 'Free'}
+              </span>
+            )}
+          </div>
+
+          <div className="px-6 sm:px-8 py-5">
+            {!sub ? (
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full border-2 border-teal-300 border-t-teal-500 animate-spin flex-shrink-0" />
+                <span className="text-sm text-gray-400">Loading plan…</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-4">
+                  {/* Tier icon */}
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0
+                    ${sub.tier === 'enterprise'   ? 'bg-violet-100' :
+                      sub.tier === 'professional' ? 'bg-teal-100' : 'bg-gray-100'}`}>
+                    {sub.tier === 'enterprise' ? (
+                      <svg className="w-6 h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                      </svg>
+                    ) : sub.tier === 'professional' ? (
+                      <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                          d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                      </svg>
+                    ) : (
+                      <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                      </svg>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">
+                      {sub.tier ? sub.tier.charAt(0).toUpperCase() + sub.tier.slice(1) : 'Free'} Plan
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {sub.billing_period
+                        ? sub.billing_period.charAt(0).toUpperCase() + sub.billing_period.slice(1) + ' billing'
+                        : 'No billing'}
+                      {sub.expires_at && (
+                        <> · Renews {new Date(sub.expires_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowManagePlanModal(true)}
+                  className="text-xs font-semibold text-teal-600 border border-teal-200 px-4 py-2
+                    rounded-xl hover:bg-teal-50 transition-colors flex-shrink-0">
+                  {sub.tier === 'free' ? 'Upgrade Plan' : 'Manage Plan'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
 
           {/* ── Firebase Auth fields ── */}
@@ -362,16 +484,223 @@ export default function Profile() {
           <h3 className="text-sm font-bold text-red-500 mb-1">Danger Zone</h3>
           <p className="text-xs text-gray-400 mb-4">These actions are permanent and cannot be undone.</p>
           <div className="flex flex-wrap gap-3">
-            <button className="text-xs font-semibold text-red-500 border border-red-200 px-4 py-2 rounded-xl hover:bg-red-50 transition-colors">
+            <button onClick={() => { setShowPasswordModal(true); setPwSent(false); setPwError('') }}
+              className="text-xs font-semibold text-gray-600 border border-gray-200 px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors">
               Change Password
             </button>
-            <button className="text-xs font-semibold text-red-500 border border-red-200 px-4 py-2 rounded-xl hover:bg-red-50 transition-colors">
+            <button onClick={() => { setShowDeleteModal(true); setDelConfirm(''); setDelError('') }}
+              className="text-xs font-semibold text-red-500 border border-red-200 px-4 py-2 rounded-xl hover:bg-red-50 transition-colors">
               Delete Account
             </button>
           </div>
         </div>
       </main>
       <Footer />
+
+
+      {/* ── Change Password Modal ── */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          onClick={e => { if (e.target === e.currentTarget) setShowPasswordModal(false) }}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-8">
+            <button onClick={() => setShowPasswordModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200
+                flex items-center justify-center transition-colors">
+              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-5">
+              <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+              </svg>
+            </div>
+            <h3 style={{ fontFamily: 'var(--font-display)' }}
+              className="font-black text-xl text-gray-900 mb-1">Change Password</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              We'll send a password reset link to <span className="font-semibold text-gray-700">{authUser?.email}</span>.
+            </p>
+            {pwSent ? (
+              <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-4 text-center">
+                <p className="text-sm font-semibold text-green-700 mb-1">Reset email sent! ✅</p>
+                <p className="text-xs text-green-600">Check your inbox and follow the link to set a new password.</p>
+              </div>
+            ) : (
+              <>
+                {pwError && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 text-sm text-red-600">{pwError}</div>
+                )}
+                <button onClick={handleSendPasswordReset} disabled={pwLoading}
+                  className="w-full btn-shimmer text-white font-semibold py-3.5 rounded-xl text-sm
+                    flex items-center justify-center gap-2 disabled:opacity-60">
+                  {pwLoading
+                    ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Sending…</>
+                    : 'Send Reset Email'
+                  }
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Account Modal ── */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          onClick={e => { if (e.target === e.currentTarget) setShowDeleteModal(false) }}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-8">
+            <button onClick={() => setShowDeleteModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200
+                flex items-center justify-center transition-colors">
+              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+            <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mb-5">
+              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </div>
+            <h3 style={{ fontFamily: 'var(--font-display)' }}
+              className="font-black text-xl text-gray-900 mb-1">Delete Account</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              This will permanently delete your account and all your data. This cannot be undone.
+            </p>
+            <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-5">
+              <p className="text-xs text-red-600 font-medium">Type <span className="font-mono font-bold">DELETE</span> to confirm</p>
+            </div>
+            <input
+              type="text"
+              value={delConfirm}
+              onChange={e => setDelConfirm(e.target.value)}
+              placeholder="Type DELETE here"
+              className="w-full px-4 py-3 text-sm bg-gray-100 border border-transparent rounded-xl
+                focus:outline-none focus:ring-2 focus:ring-red-400 focus:bg-white
+                placeholder:text-gray-400 transition-all mb-4 font-mono"
+            />
+            {delError && (
+              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 text-sm text-red-600">{delError}</div>
+            )}
+            <div className="flex gap-3">
+              <button onClick={() => setShowDeleteModal(false)}
+                className="flex-1 py-3 text-sm font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleDeleteAccount} disabled={delLoading || delConfirm !== 'DELETE'}
+                className="flex-1 py-3 text-sm font-semibold text-white bg-red-500 hover:bg-red-600
+                  rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                {delLoading
+                  ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Deleting…</>
+                  : 'Delete My Account'
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Manage Plan Modal ── */}
+      {showManagePlanModal && sub && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          onClick={e => { if (e.target === e.currentTarget) setShowManagePlanModal(false) }}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden">
+            <div className="bg-teal-500 px-8 pt-8 pb-6">
+              <button onClick={() => setShowManagePlanModal(false)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30
+                  flex items-center justify-center transition-colors">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+              <p className="text-xs font-bold uppercase tracking-widest text-teal-100 mb-1">Current Plan</p>
+              <h3 style={{ fontFamily: 'var(--font-display)' }} className="font-black text-2xl text-white">
+                {sub.tier ? sub.tier.charAt(0).toUpperCase() + sub.tier.slice(1) : 'Free'}
+              </h3>
+              <p className="text-teal-100 text-sm mt-1">
+                {sub.billing_period ? sub.billing_period.charAt(0).toUpperCase() + sub.billing_period.slice(1) + ' billing' : 'No billing'}
+                {sub.expires_at && ` · Renews ${new Date(sub.expires_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}`}
+              </p>
+            </div>
+
+            <div className="px-8 py-6 space-y-3">
+              {/* Change plan options */}
+              {sub.tier !== 'professional' && (
+                <button
+                  onClick={() => { setShowManagePlanModal(false); setCheckoutModal({ tier: 'professional', period: sub.billing_period || 'monthly' }) }}
+                  className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-teal-200
+                    hover:border-teal-400 hover:bg-teal-50 transition-all group">
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-gray-900">Switch to Professional</p>
+                    <p className="text-xs text-gray-400">₱100/mo · Unlimited sessions</p>
+                  </div>
+                  <svg className="w-4 h-4 text-teal-500 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                  </svg>
+                </button>
+              )}
+              {sub.tier !== 'enterprise' && (
+                <button
+                  onClick={() => { setShowManagePlanModal(false); setCheckoutModal({ tier: 'enterprise', period: sub.billing_period || 'monthly' }) }}
+                  className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-violet-200
+                    hover:border-violet-400 hover:bg-violet-50 transition-all group">
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-gray-900">Switch to Enterprise</p>
+                    <p className="text-xs text-gray-400">₱260/mo · Everything included</p>
+                  </div>
+                  <svg className="w-4 h-4 text-violet-500 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                  </svg>
+                </button>
+              )}
+              {sub.tier !== 'free' && (
+                <button
+                  onClick={async () => {
+                    // Downgrade to free — call backend to upsert free subscription
+                    try {
+                      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/payments/checkout`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await auth.currentUser.getIdToken()}` },
+                        body: JSON.stringify({ tier: 'free', billing_period: 'monthly' })
+                      })
+                      const updated = await (await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/payments/my-subscription`, {
+                        headers: { Authorization: `Bearer ${await auth.currentUser.getIdToken()}` }
+                      })).json()
+                      setSub(updated)
+                      setShowManagePlanModal(false)
+                    } catch { /* ignore */ }
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-gray-200
+                    hover:border-red-300 hover:bg-red-50 transition-all group">
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-gray-700">Unsubscribe / Downgrade to Free</p>
+                    <p className="text-xs text-gray-400">You'll lose access to premium features</p>
+                  </div>
+                  <svg className="w-4 h-4 text-gray-400 group-hover:text-red-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {checkoutModal && (
+        <CheckoutModal
+          tier={checkoutModal.tier}
+          period={checkoutModal.period}
+          onClose={() => setCheckoutModal(null)}
+          onSuccess={async () => {
+            setCheckoutModal(null)
+            try { setSub(await getMySubscription()) } catch {}
+          }}
+        />
+      )}
     </div>
   )
 }

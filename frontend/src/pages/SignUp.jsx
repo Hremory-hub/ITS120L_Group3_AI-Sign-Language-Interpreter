@@ -46,7 +46,7 @@ export default function SignUp() {
       //  Send verification email after signup
       await sendEmailVerification(cred.user)
 
-      // Redirect to verify page
+      // Redirect to verify email — sessionStorage redirect already set by Checkout if applicable
       navigate('/verify-email')
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
@@ -72,7 +72,14 @@ export default function SignUp() {
       const cred = await signInWithPopup(auth, provider)
       // Google accounts are already verified
       if (cred.user.emailVerified) {
-        navigate('/dashboard')
+        // Google accounts skip email verify — check sessionStorage for pending checkout
+        const redirect = sessionStorage.getItem('kamai_post_verify_redirect')
+        if (redirect) {
+          sessionStorage.removeItem('kamai_post_verify_redirect')
+          navigate(redirect)
+        } else {
+          navigate('/dashboard')
+        }
       } else {
         navigate('/verify-email')
       }

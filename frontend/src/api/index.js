@@ -58,3 +58,9 @@ export const deleteSession = (id)                    => request('DELETE', `/sess
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 export const getStats = () => request('GET', '/sessions/stats')
+
+// ── Payments / Subscriptions ──────────────────────────────────────────────────
+export const getMySubscription  = ()                    => request('GET',  '/payments/my-subscription')
+export const createCheckout     = (tier, billingPeriod) => request('POST', '/payments/checkout', { tier, billing_period: billingPeriod })
+export const verifyPayment      = (linkId, tier, period) =>
+  request('GET', `/payments/success?link_id=${encodeURIComponent(linkId)}&tier=${tier}&period=${period}`)

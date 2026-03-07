@@ -9,7 +9,10 @@ import pickle
 from pathlib import Path
 from database import engine, SessionLocal
 import models
-from routers import users, sessions
+from routers import users, sessions, payments
+
+from dotenv import load_dotenv
+load_dotenv() # Load variables immediately
 
 # 1. Setup Database
 models.Base.metadata.create_all(bind=engine)
@@ -31,6 +34,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 # 4. Routers
 app.include_router(users.router)
 app.include_router(sessions.router)
+app.include_router(payments.router)
 
 # 5. Load AI Model & Landmark Tools
 # Ensure these paths match your folder structure

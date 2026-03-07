@@ -28,9 +28,17 @@ python -m venv venv
 venv\Scripts\activate
 ```
 
-### 2. Install dependencies
+### 2. Install dependencies (NOT USING REQUIREMENTS.TXT ANYMORE DUE TO DEPENDENCY HELL)
+
+**IMPORTANT! MAKE SURE YOU RUN THE PIP INSTALL COMMANDS BY ITS ORDER TO AVOID VENV CORRUPTION**
+
+**Using CMD:**
 ```
-pip install -r requirements.txt
+pip install -c constraints.txt tensorflow==2.16.1 mediapipe==0.10.14 protobuf==4.25.3
+pip install -c constraints.txt fastapi uvicorn python-multipart scikit-learn sqlalchemy pymysql
+pip install -c constraints.txt --no-deps firebase-admin google-cloud-storage google-cloud-firestore
+pip install -c constraints.txt --no-deps google-auth cryptography pyasn1 pyasn1-modules rsa
+pip install -c constraints.txt --no-deps httpx cachecontrol msgpack dotenv
 ```
 
 **TO REMOVE UNUSED/OLD DEPENDENCIES:**
@@ -94,38 +102,44 @@ docker run -d ^
 ```
 docker ps
 ```
+### 3. Add Database
+**Using CMD:**
+```
+docker exec -it <container_name_or_id> mysql -u root -p
+```
+
+**After Logging In:**
+```
+CREATE DATABASE asldb;
+USE asldb;
+CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(50));
+```
+
 
 ### HOW TO RUN:
 
-Just Start on Docker instead
+Just Start on Docker instead or use CMD
 
-## Firebase token verification + auto-provisioning of MySQL user rows.
+## Firebase Token Verifications.
 
-Setup:
+**Setup:**
   1. Go to Firebase Console → Project Settings → Service Accounts
   2. Click "Generate new private key" → save as backend/serviceAccountKey.json
   3. OR set env var:  GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json
 
 
 ## Train
-python train_model.py
-- For training and fine-tuning models using Tensor
-- Nvidia GPUs RECOMMENDED, otherwise IT USES CPU (SLOWER)
-- Send ko nalang link ng Model
+**feature_extraction.py**
+- For feature extraction through CNN (Convolutional Neutral Network) using Mediapipe
+- Creates landmarks_dataset.csv for landmarks using Pandas
+
+**train_landmarks.py**
+-  For landmark training and data processing using SciKit-Learn
+- Creates the final models
+    - asl_landmark_model.h5
+    - label_encoder.h5
 
 ## Model Accuracy
-95% validation accuracy using MobileNetV2 fine-tuning
-
-
-
-
-
-
-
-
-
-
-
-
+~98% validation accuracy using Mediapipe Blazepose
 
 

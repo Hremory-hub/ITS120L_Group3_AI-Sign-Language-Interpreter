@@ -50,7 +50,13 @@ export default function VerifyEmail() {
     try {
       await reload(user) // refresh user from Firebase
       if (auth.currentUser?.emailVerified) {
-        window.location.href = '/dashboard'
+        const redirect = sessionStorage.getItem('kamai_post_verify_redirect')
+        if (redirect) {
+          sessionStorage.removeItem('kamai_post_verify_redirect')
+          window.location.href = redirect
+        } else {
+          window.location.href = '/dashboard'
+        }
       } else {
         setError("Email not verified yet. Please check your inbox and click the link.")
       }

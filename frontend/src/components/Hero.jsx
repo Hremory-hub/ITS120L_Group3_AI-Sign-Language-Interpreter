@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { auth } from '../firebase'
+import { onAuthStateChanged } from 'firebase/auth'
 
 function useCounter(target, duration = 1800, start = false) {
   const [count, setCount] = useState(0)
@@ -29,6 +31,12 @@ function StatCard({ value, suffix = '', label, animate, delay }) {
 }
 
 export default function Hero() {
+  const [loggedIn, setLoggedIn] = useState(false)
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, u => setLoggedIn(!!u))
+    return () => unsub()
+  }, [])
+
   const [visible, setVisible] = useState(false)
   useEffect(() => { const t = setTimeout(() => setVisible(true), 150); return () => clearTimeout(t) }, [])
 
@@ -84,9 +92,9 @@ export default function Hero() {
             {/* CTA */}
             <div className={`flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4
               ${visible ? 'animate-fadeUp' : 'opacity-0'} delay-300`}>
-              <a href="#" className="btn-shimmer w-full sm:w-auto text-white font-semibold text-base
+              <a href={loggedIn ? "/dashboard" : "/signup"} className="btn-shimmer w-full sm:w-auto text-white font-semibold text-base
                 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl flex items-center justify-center gap-3 group">
-                Start Interpreting
+                {loggedIn ? "Go to Dashboard" : "Start Interpreting"}
                 <span className="group-hover:translate-x-1 transition-transform duration-200">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />

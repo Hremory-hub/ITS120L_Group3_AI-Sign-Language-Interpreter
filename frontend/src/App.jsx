@@ -12,6 +12,10 @@ import Help               from './pages/Help'
 import Profile            from './pages/Profile'
 import Dashboard          from './pages/Dashboard'
 import SignToText         from './pages/SignToText'
+import VerifyEmail       from './pages/VerifyEmail'
+import Checkout          from './pages/Checkout'
+import PaymentSuccess    from './pages/PaymentSuccess'
+import PaymentCancelled  from './pages/PaymentCancelled'
 
 function HomePage() {
   useEffect(() => {
@@ -88,5 +92,9 @@ export default function App() {
   if (path === '/profile')            return <Profile />
   if (path === '/dashboard')          return <Dashboard />
   if (path === '/session/sign-to-text') return <SignToText />
+  if (path === '/verify-email')         return <VerifyEmail />
+  if (path === '/checkout')             return <Checkout />
+  if (path === '/payment/success')      return <PaymentSuccess />
+  if (path === '/payment/cancelled')    return <PaymentCancelled />
   return <HomePage />
 }

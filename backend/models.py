@@ -81,3 +81,45 @@ class Prediction(Base):
     created_at = Column(DateTime,   default=datetime.utcnow)
 
     user = relationship("User", back_populates="predictions")
+
+
+# ── Tier / Subscription ───────────────────────────────────────────────────────
+
+class UserTier(str, enum.Enum):
+    free         = "free"
+    professional = "professional"
+    enterprise   = "enterprise"
+
+
+class PaymentStatus(str, enum.Enum):
+    pending   = "pending"
+    paid      = "paid"
+    failed    = "failed"
+    cancelled = "cancelled"
+
+
+class Subscription(Base):
+    """
+    Tracks the active plan + PayMongo payment reference for each user.
+    One row per user (upserted on every successful payment).
+    """
+    __tablename__ = "subscriptions"
+
+    id                 = Column(Integer, primary_key=True, index=True)
+    user_id            = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"),
+                                nullable=False, unique=True)
+    tier               = Column(SAEnum(UserTier), nullable=False, default=UserTier.free)
+    billing_period     = Column(String(16), nullable=True)           # "monthly" | "annual"
+    paymongo_link_id   = Column(String(128), nullable=True)          # PaymentLink id
+    paymongo_payment_id = Column(String(128), nullable=True)         # actual Payment id
+    amount_paid        = Column(Integer, nullable=True)              # centavos
+    status             = Column(SAEnum(PaymentStatus), default=PaymentStatus.pending)
+    started_at         = Column(DateTime, default=datetime.utcnow)
+    expires_at         = Column(DateTime, nullable=True)
+
+    user = relationship("User", back_populates="subscription")
+
+
+# wire back-ref on User
+User.subscription = relationship("Subscription", back_populates="user",
+                                  uselist=False, cascade="all, delete-orphan")
