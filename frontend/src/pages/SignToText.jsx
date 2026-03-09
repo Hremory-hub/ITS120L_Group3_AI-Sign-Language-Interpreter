@@ -1,22 +1,23 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { auth } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
-import { createSession, updateSession } from '../api'
+import { createSession, updateSession, getSuggestions } from '../api'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 
 const API_BASE          = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-const CAPTURE_INTERVAL   = 800    // ms between frames sent to /predict/
-const MIN_CONFIDENCE     = 0.75   // ignore predictions below this
-const REPEATS_TO_CONFIRM = 2      // consecutive same predictions needed to confirm a letter
+const CAPTURE_INTERVAL   = 800
+const MIN_CONFIDENCE     = 0.75
+const REPEATS_TO_CONFIRM = 2
+const SUGGEST_DEBOUNCE   = 320   // ms after last letter before fetching suggestions
 
 export default function SignToText() {
   const videoRef    = useRef(null)
   const canvasRef   = useRef(null)
   const intervalRef = useRef(null)
   const streamRef   = useRef(null)
+  const suggestTimer = useRef(null)
 
-  // Consecutive repeat tracking — use refs so interval closure always sees latest
   const lastLetterRef   = useRef(null)
   const repeatCountRef  = useRef(0)
   const wordCountRef    = useRef(0)
@@ -31,9 +32,14 @@ export default function SignToText() {
 
   const [currentLetter, setCurrentLetter] = useState(null)
   const [confidence,    setConfidence]    = useState(0)
-  const [pendingWord,   setPendingWord]   = useState('')   // letters being built
-  const [transcript,    setTranscript]    = useState([])   // confirmed words
-  const [elapsed,       setElapsed]       = useState(0)    // session seconds
+  const [pendingWord,   setPendingWord]   = useState('')
+  const [transcript,    setTranscript]    = useState([])
+  const [elapsed,       setElapsed]       = useState(0)
+
+  // ── Autocomplete state ────────────────────────────────────────────────────
+  const [suggestions,     setSuggestions]     = useState([])
+  const [suggestLoading,  setSuggestLoading]  = useState(false)
+  const [selectedSuggest, setSelectedSuggest] = useState(-1)  // keyboard nav index
 
   // Auth
   useEffect(() => {
@@ -47,7 +53,7 @@ export default function SignToText() {
     return () => teardownCamera()
   }, [])
 
-  // Session timer — tick every second while running
+  // Session timer
   useEffect(() => {
     if (!running) return
     const t = setInterval(() => {
@@ -57,6 +63,32 @@ export default function SignToText() {
     }, 1000)
     return () => clearInterval(t)
   }, [running])
+
+  // ── Fetch suggestions whenever pendingWord changes ────────────────────────
+  useEffect(() => {
+    clearTimeout(suggestTimer.current)
+    setSelectedSuggest(-1)
+
+    if (pendingWord.length < 2) {
+      setSuggestions([])
+      return
+    }
+
+    setSuggestLoading(true)
+    suggestTimer.current = setTimeout(async () => {
+      try {
+        const results = await getSuggestions(pendingWord, 6)
+        // Filter out exact match — no point suggesting the word they already typed
+        setSuggestions(results.filter(s => s !== pendingWord.toLowerCase()))
+      } catch {
+        setSuggestions([])
+      } finally {
+        setSuggestLoading(false)
+      }
+    }, SUGGEST_DEBOUNCE)
+
+    return () => clearTimeout(suggestTimer.current)
+  }, [pendingWord])
 
   const initCamera = async () => {
     setCamError('')
@@ -81,9 +113,9 @@ export default function SignToText() {
   const teardownCamera = () => {
     streamRef.current?.getTracks().forEach(t => t.stop())
     clearInterval(intervalRef.current)
+    clearTimeout(suggestTimer.current)
   }
 
-  // ── Capture one frame and POST to /predict/ ────────────────────────────────
   const captureAndPredict = useCallback(async () => {
     const video  = videoRef.current
     const canvas = canvasRef.current
@@ -107,7 +139,7 @@ export default function SignToText() {
         setCurrentLetter(letter)
         setConfidence(conf)
 
-        if (letter === "None" || conf < MIN_CONFIDENCE) {
+        if (letter === 'None' || conf < MIN_CONFIDENCE) {
           lastLetterRef.current = null
           repeatCountRef.current = 0
         } else {
@@ -129,13 +161,13 @@ export default function SignToText() {
       }
     }, 'image/jpeg', 0.85)
   }, [])
-  
-  // ── Start ──────────────────────────────────────────────────────────────────
+
   const handleStart = async () => {
     if (!camReady) return
     setRunning(true)
     setTranscript([])
     setPendingWord('')
+    setSuggestions([])
     setCurrentLetter(null)
     setConfidence(0)
     setElapsed(0)
@@ -154,13 +186,12 @@ export default function SignToText() {
     intervalRef.current = setInterval(captureAndPredict, CAPTURE_INTERVAL)
   }
 
-  // ── Stop ───────────────────────────────────────────────────────────────────
   const handleStop = async () => {
     clearInterval(intervalRef.current)
     setRunning(false)
     setCurrentLetter(null)
+    setSuggestions([])
 
-    // Flush any in-progress word
     setPendingWord(current => {
       if (current.trim()) {
         setTranscript(t => [...t, current.trim()])
@@ -178,28 +209,42 @@ export default function SignToText() {
           word_count:       wordCountRef.current,
         })
       } catch (e) { console.warn('Session update failed:', e.message) }
-      sessionIdRef.current   = null
+      sessionIdRef.current    = null
       sessionStartRef.current = null
     }
   }
 
-  // ── Space: confirm current word ────────────────────────────────────────────
-  const handleSpace = () => {
-    if (!pendingWord.trim()) return
-    setTranscript(t => [...t, pendingWord.trim()])
+  // ── Confirm word ──────────────────────────────────────────────────────────
+  const confirmWord = (word) => {
+    const w = word.trim()
+    if (!w) return
+    setTranscript(t => [...t, w])
     wordCountRef.current += 1
     setPendingWord('')
+    setSuggestions([])
+    setSelectedSuggest(-1)
     lastLetterRef.current  = null
     repeatCountRef.current = 0
   }
 
-  // ── Backspace ──────────────────────────────────────────────────────────────
-  const handleBackspace = () => setPendingWord(w => w.slice(0, -1))
+  const handleSpace = () => {
+    if (!pendingWord.trim()) return
+    confirmWord(pendingWord)
+  }
 
-  // ── Clear all ──────────────────────────────────────────────────────────────
+  // Accept a suggestion — replaces pendingWord with the full suggestion
+  const acceptSuggestion = (word) => {
+    confirmWord(word)
+  }
+
+  const handleBackspace = () => {
+    setPendingWord(w => w.slice(0, -1))
+  }
+
   const handleClear = () => {
     setTranscript([])
     setPendingWord('')
+    setSuggestions([])
     wordCountRef.current   = 0
     lastLetterRef.current  = null
     repeatCountRef.current = 0
@@ -216,7 +261,7 @@ export default function SignToText() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar activePage="/session/sign-to-text" />
 
-      {/* ── Page header ──────────────────────────────────────────────────── */}
+      {/* Page header */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 pt-14 sm:pt-16">
         <div className="max-w-7xl mx-auto flex items-center justify-between h-14">
           <div className="flex items-center gap-3">
@@ -232,7 +277,6 @@ export default function SignToText() {
               <p className="text-xs text-gray-400 hidden sm:block">Real-time FSL alphabet → readable text</p>
             </div>
           </div>
-
           {running && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 px-3 py-1.5 rounded-xl">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -244,17 +288,15 @@ export default function SignToText() {
         </div>
       </div>
 
-      {/* ── Main layout ──────────────────────────────────────────────────── */}
+      {/* Main layout */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* ── LEFT: Camera panel ──────────────────────────────────────────── */}
+        {/* LEFT: Camera panel */}
         <div className="flex flex-col gap-4">
-
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
 
             {/* Viewfinder */}
             <div className="relative bg-gray-900 aspect-video flex items-center justify-center">
-
               {camError ? (
                 <div className="text-center px-6 py-8">
                   <div className="w-14 h-14 rounded-2xl bg-red-900/30 flex items-center justify-center mx-auto mb-4">
@@ -271,15 +313,11 @@ export default function SignToText() {
                 </div>
               ) : (
                 <>
-                  {/* Mirrored video feed */}
                   <video ref={videoRef} autoPlay playsInline muted
                     className="w-full h-full object-cover"
                     style={{ transform: 'scaleX(-1)' }} />
-
-                  {/* Hidden capture canvas */}
                   <canvas ref={canvasRef} className="hidden" />
 
-                  {/* Live prediction badge */}
                   {running && currentLetter && (
                     <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm rounded-2xl px-4 py-3 text-center min-w-[72px]">
                       <p className="text-5xl font-black text-white leading-none tracking-tighter">{currentLetter}</p>
@@ -287,12 +325,10 @@ export default function SignToText() {
                     </div>
                   )}
 
-                  {/* Predicting spinner */}
                   {predicting && (
                     <div className="absolute top-3 right-3 w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   )}
 
-                  {/* Ready overlay */}
                   {!running && camReady && (
                     <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-3">
                       <div className="w-16 h-16 rounded-full border-2 border-white/40 flex items-center justify-center">
@@ -305,7 +341,6 @@ export default function SignToText() {
                     </div>
                   )}
 
-                  {/* Loading */}
                   {!camReady && !camError && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -315,7 +350,7 @@ export default function SignToText() {
               )}
             </div>
 
-            {/* Start / Stop controls */}
+            {/* Controls */}
             <div className="p-4 flex gap-3">
               {!running ? (
                 <button onClick={handleStart} disabled={!camReady || !!camError}
@@ -348,8 +383,8 @@ export default function SignToText() {
             <ol className="space-y-2">
               {[
                 'Hold an FSL hand sign steady in front of the camera',
-                `Hold still for ~${((CAPTURE_INTERVAL * REPEATS_TO_CONFIRM) / 1000).toFixed(1)}s — letter is confirmed and appears`,
-                'Use Space to finish a word, Backspace to remove a letter',
+                `Hold still for ~${((CAPTURE_INTERVAL * REPEATS_TO_CONFIRM) / 1000).toFixed(1)}s — letter is confirmed`,
+                'Tap a suggestion to complete the word instantly, or use Space to add manually',
               ].map((step, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-xs text-teal-700">
                   <span className="w-5 h-5 rounded-full bg-teal-500 text-white flex items-center justify-center
@@ -361,17 +396,18 @@ export default function SignToText() {
           </div>
         </div>
 
-        {/* ── RIGHT: Transcript panel ──────────────────────────────────────── */}
+        {/* RIGHT: Transcript panel */}
         <div className="flex flex-col gap-4">
 
-          {/* Building word */}
+          {/* Building word + suggestions */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Building word</p>
               {pendingWord && <span className="text-xs text-gray-400">{pendingWord.length} letters</span>}
             </div>
 
-            <div className="min-h-12 flex items-center">
+            {/* Letter tiles */}
+            <div className="min-h-12 flex items-center mb-4">
               {pendingWord ? (
                 <div className="flex flex-wrap gap-1.5">
                   {pendingWord.split('').map((ch, i) => (
@@ -380,7 +416,6 @@ export default function SignToText() {
                       {ch}
                     </span>
                   ))}
-                  {/* Blinking cursor */}
                   <span className="w-9 h-9 rounded-xl border-2 border-dashed border-teal-300
                     flex items-center justify-center text-teal-300 text-lg animate-pulse">
                     _
@@ -393,8 +428,53 @@ export default function SignToText() {
               )}
             </div>
 
+            {/* ── Autocomplete suggestions ─────────────────────────────── */}
+            <div className={`transition-all duration-200 overflow-hidden ${suggestions.length > 0 || suggestLoading ? 'mb-4' : 'mb-0 h-0'}`}>
+              {/* Header */}
+              <div className="flex items-center gap-2 mb-2">
+                <svg className="w-3.5 h-3.5 text-teal-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Suggestions</span>
+                {suggestLoading && (
+                  <span className="w-3 h-3 border-2 border-teal-300 border-t-teal-500 rounded-full animate-spin ml-1" />
+                )}
+              </div>
+
+              {/* Chips */}
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((word, i) => (
+                  <button
+                    key={word}
+                    onClick={() => acceptSuggestion(word)}
+                    className={`group relative px-3.5 py-2 rounded-xl text-sm font-semibold
+                      border transition-all duration-150 flex items-center gap-1.5
+                      ${selectedSuggest === i
+                        ? 'bg-teal-500 border-teal-500 text-white shadow-md shadow-teal-200'
+                        : 'bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-500 hover:border-teal-500 hover:text-white hover:shadow-md hover:shadow-teal-200'
+                      }`}>
+                    {/* Bold the matching prefix, normal for completion */}
+                    <span>
+                      <span className="font-black">{word.slice(0, pendingWord.length)}</span>
+                      <span className="font-medium opacity-80">{word.slice(pendingWord.length)}</span>
+                    </span>
+                    {/* Tap indicator */}
+                    <svg className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
+                    </svg>
+                  </button>
+                ))}
+
+                {/* Empty state — typed 2+ letters but no matches */}
+                {!suggestLoading && suggestions.length === 0 && pendingWord.length >= 2 && (
+                  <span className="text-xs text-gray-300 italic py-2">No suggestions for "{pendingWord}"</span>
+                )}
+              </div>
+            </div>
+
             {/* Word action buttons */}
-            <div className="flex gap-2 mt-4">
+            <div className="flex gap-2">
               <button onClick={handleSpace} disabled={!pendingWord}
                 className="flex-1 py-2.5 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl
                   hover:border-teal-400 hover:text-teal-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all
@@ -473,9 +553,9 @@ export default function SignToText() {
           {/* Stats strip */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Words',       value: transcript.length                                       },
-              { label: 'Letters',     value: letterCount                                             },
-              { label: 'Confidence',  value: running && currentLetter ? `${confPct}%` : '—'         },
+              { label: 'Words',      value: transcript.length                                 },
+              { label: 'Letters',    value: letterCount                                       },
+              { label: 'Confidence', value: running && currentLetter ? `${confPct}%` : '—'   },
             ].map(s => (
               <div key={s.label} className="bg-white border border-gray-200 rounded-2xl p-4 text-center shadow-sm">
                 <p style={{ fontFamily: 'var(--font-display)' }}

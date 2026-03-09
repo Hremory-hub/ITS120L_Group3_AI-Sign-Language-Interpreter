@@ -2,3 +2,4 @@ numpy==1.26.4
 protobuf==4.25.3
 tensorflow==2.16.1
 mediapipe==0.10.11
+fast-autocomplete==0.10.0

@@ -38,7 +38,7 @@ pip install -c constraints.txt tensorflow==2.16.1 mediapipe==0.10.14 protobuf==4
 pip install -c constraints.txt fastapi uvicorn python-multipart scikit-learn sqlalchemy pymysql
 pip install -c constraints.txt --no-deps firebase-admin google-cloud-storage google-cloud-firestore
 pip install -c constraints.txt --no-deps google-auth cryptography pyasn1 pyasn1-modules rsa
-pip install -c constraints.txt --no-deps httpx cachecontrol msgpack dotenv
+pip install -c constraints.txt --no-deps httpx cachecontrol msgpack dotenv fast-autocomplete
 ```
 
 **TO REMOVE UNUSED/OLD DEPENDENCIES:**

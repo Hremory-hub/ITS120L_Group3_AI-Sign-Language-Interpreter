@@ -64,3 +64,14 @@ export const getMySubscription  = ()                    => request('GET',  '/pay
 export const createCheckout     = (tier, billingPeriod) => request('POST', '/payments/checkout', { tier, billing_period: billingPeriod })
 export const verifyPayment      = (linkId, tier, period) =>
   request('GET', `/payments/success?link_id=${encodeURIComponent(linkId)}&tier=${tier}&period=${period}`)
+
+// ── Autocomplete ──────────────────────────────────────────────────────────────
+export async function getSuggestions(prefix, limit = 6) {
+  if (!prefix || prefix.length < 2) return []
+  const res = await fetch(
+    `${BASE}/autocomplete?q=${encodeURIComponent(prefix.toLowerCase())}&limit=${limit}`
+  )
+  if (!res.ok) return []
+  const { suggestions } = await res.json()
+  return suggestions
+}
