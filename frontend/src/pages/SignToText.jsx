@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { auth } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
-import { createSession, updateSession, getSuggestions } from '../api'
+import { createSession, updateSession, getSuggestions, getVocab, markVocabUsed } from '../api'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 
@@ -233,8 +233,15 @@ export default function SignToText() {
   }
 
   // Accept a suggestion — replaces pendingWord with the full suggestion
-  const acceptSuggestion = (word) => {
+  // Also increments use_count if it's a custom vocab word
+  const acceptSuggestion = async (word) => {
     confirmWord(word)
+    // Fire-and-forget: bump use_count if this word is in the user's vocab
+    try {
+      const vocab = await getVocab(`q=${encodeURIComponent(word)}&limit=5`)
+      const match = vocab.find(v => v.word === word.toLowerCase())
+      if (match) markVocabUsed(match.id).catch(() => {})
+    } catch {}
   }
 
   const handleBackspace = () => {

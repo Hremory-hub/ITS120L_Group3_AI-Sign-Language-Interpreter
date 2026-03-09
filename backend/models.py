@@ -123,3 +123,35 @@ class Subscription(Base):
 # wire back-ref on User
 User.subscription = relationship("Subscription", back_populates="user",
                                   uselist=False, cascade="all, delete-orphan")
+
+
+# ── Custom Vocabulary ─────────────────────────────────────────────────────────
+
+class VocabPriority(str, enum.Enum):
+    p1 = "p1"   # weight 100 — same as TIER1 (most common words)
+    p2 = "p2"   # weight 60  — same as TIER2
+    p3 = "p3"   # weight 20  — same as TIER3 (least common)
+
+
+class VocabWord(Base):
+    """
+    A user-defined word added to their personal vocabulary.
+    Shows up in autocomplete suggestions during Sign-to-Text sessions.
+    """
+    __tablename__ = "vocab_words"
+
+    id          = Column(Integer,     primary_key=True, index=True)
+    user_id     = Column(Integer,     ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    word        = Column(String(120), nullable=False)
+    definition  = Column(Text,        nullable=True)   # optional description / context
+    tags        = Column(String(512), nullable=True)   # comma-separated tags
+    tier        = Column(SAEnum(VocabPriority), nullable=False, default=VocabPriority.p3)
+    use_count   = Column(Integer,     default=0)       # incremented when used in a session
+    created_at  = Column(DateTime,    default=datetime.utcnow)
+    updated_at  = Column(DateTime,    default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="vocab_words")
+
+
+# wire back-ref
+User.vocab_words = relationship("VocabWord", back_populates="user", cascade="all, delete-orphan")

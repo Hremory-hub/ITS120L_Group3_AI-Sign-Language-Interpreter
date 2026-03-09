@@ -9,7 +9,7 @@ import pickle
 from pathlib import Path
 from database import engine, SessionLocal
 import models
-from routers import users, sessions, payments, autocomplete
+from routers import users, sessions, payments, autocomplete, vocabulary
 
 from dotenv import load_dotenv
 load_dotenv() # Load variables immediately
@@ -19,9 +19,16 @@ models.Base.metadata.create_all(bind=engine)
 
 # 2. App & CORS
 app = FastAPI(title="KamAI API")
+import os
+_ALLOWED_ORIGINS = [
+    "http://localhost:5173",   # Vite dev server
+    "http://localhost:4173",   # Vite preview
+    "http://127.0.0.1:5173",
+    os.getenv("FRONTEND_URL", ""),   # production URL from .env
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o for o in _ALLOWED_ORIGINS if o],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,6 +43,7 @@ app.include_router(users.router)
 app.include_router(sessions.router)
 app.include_router(payments.router)
 app.include_router(autocomplete.router)
+app.include_router(vocabulary.router)
 
 # 5. Load AI Model & Landmark Tools
 # Ensure these paths match your folder structure
@@ -92,3 +100,44 @@ async def predict(file: UploadFile = File(...)):
 
     except Exception as e:
         return {"letter": "None", "details": str(e)}
+
+# ── Migration: fix vocab_words.tier ENUM column ───────────────────────────────
+# MySQL stores ENUM values in the column definition itself. If the table was
+# created with ('free','professional','enterprise') we must ALTER the column
+# before any ORM query touches it, otherwise SQLAlchemy raises LookupError.
+#
+# Steps:
+#  1. ALTER column to VARCHAR(32) so any string is valid
+#  2. UPDATE old string values to new ones
+#  3. ALTER column back to ENUM('p1','p2','p3')
+def _migrate_vocab_tiers():
+    from sqlalchemy import text, inspect
+    try:
+        with engine.begin() as conn:
+            # Only run if the table exists
+            inspector = inspect(engine)
+            if "vocab_words" not in inspector.get_table_names():
+                return
+
+            # Step 1 — widen to VARCHAR so we can write any value
+            conn.execute(text(
+                "ALTER TABLE vocab_words MODIFY COLUMN tier VARCHAR(32) NOT NULL DEFAULT 'p3'"
+            ))
+
+            # Step 2 — remap old values
+            OLD_TO_NEW = {"free": "p3", "professional": "p2", "enterprise": "p1"}
+            for old_val, new_val in OLD_TO_NEW.items():
+                conn.execute(text(
+                    "UPDATE vocab_words SET tier = :new WHERE tier = :old"
+                ), {"new": new_val, "old": old_val})
+
+            # Step 3 — lock back to the correct ENUM
+            conn.execute(text(
+                "ALTER TABLE vocab_words MODIFY COLUMN tier ENUM('p1','p2','p3') NOT NULL DEFAULT 'p3'"
+            ))
+
+            print("[vocab migration] tier column migrated to ENUM('p1','p2','p3') ✓")
+    except Exception as e:
+        print(f"[vocab migration] {e}")
+
+_migrate_vocab_tiers()

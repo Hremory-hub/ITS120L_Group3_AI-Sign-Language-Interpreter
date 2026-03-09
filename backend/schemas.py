@@ -87,3 +87,30 @@ class UserOutWithTier(UserOut):
 class CreateCheckoutRequest(BaseModel):
     tier:           str   # "professional" | "enterprise"
     billing_period: str   # "monthly" | "annual"
+
+
+# ── Vocabulary ────────────────────────────────────────────────────────────────
+
+class VocabWordCreate(BaseModel):
+    word:       str
+    definition: Optional[str] = None
+    tags:       Optional[str] = None   # comma-separated
+    tier:       str           = "p3"
+
+class VocabWordUpdate(BaseModel):
+    word:       Optional[str] = None
+    definition: Optional[str] = None
+    tags:       Optional[str] = None
+    tier:       Optional[str] = None
+
+class VocabWordOut(BaseModel):
+    id:         int
+    word:       str
+    definition: Optional[str] = None
+    tags:       Optional[str] = None
+    tier:       str
+    use_count:  int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

@@ -16,6 +16,7 @@ import VerifyEmail       from './pages/VerifyEmail'
 import Checkout          from './pages/Checkout'
 import PaymentSuccess    from './pages/PaymentSuccess'
 import PaymentCancelled  from './pages/PaymentCancelled'
+import Vocabulary        from './pages/Vocabulary'
 
 function HomePage() {
   useEffect(() => {
@@ -96,5 +97,7 @@ export default function App() {
   if (path === '/checkout')             return <Checkout />
   if (path === '/payment/success')      return <PaymentSuccess />
   if (path === '/payment/cancelled')    return <PaymentCancelled />
+  if (path === '/session/vocabulary')   return <Vocabulary />
+  if (path === '/session/vocabulary')   return <Vocabulary />
   return <HomePage />
 }

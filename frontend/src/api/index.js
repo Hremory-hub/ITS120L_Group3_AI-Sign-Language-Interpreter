@@ -68,10 +68,24 @@ export const verifyPayment      = (linkId, tier, period) =>
 // ── Autocomplete ──────────────────────────────────────────────────────────────
 export async function getSuggestions(prefix, limit = 6) {
   if (!prefix || prefix.length < 2) return []
+  // Include auth token if logged in so custom vocab words are merged in
+  const headers = {}
+  try {
+    const token = await getToken()
+    if (token) headers['Authorization'] = `Bearer ${token}`
+  } catch {}
   const res = await fetch(
-    `${BASE}/autocomplete?q=${encodeURIComponent(prefix.toLowerCase())}&limit=${limit}`
+    `${BASE}/autocomplete?q=${encodeURIComponent(prefix.toLowerCase())}&limit=${limit}`,
+    { headers }
   )
   if (!res.ok) return []
   const { suggestions } = await res.json()
   return suggestions
 }
+
+// ── Custom Vocabulary ─────────────────────────────────────────────────────────
+export const getVocab      = (params = '') => request('GET',    `/vocabulary${params ? '?' + params : ''}`)
+export const addVocabWord  = (data)        => request('POST',   '/vocabulary', data)
+export const updateVocabWord = (id, data)  => request('PATCH',  `/vocabulary/${id}`, data)
+export const deleteVocabWord = (id)        => request('DELETE', `/vocabulary/${id}`)
+export const markVocabUsed   = (id)        => request('POST',   `/vocabulary/${id}/use`)
