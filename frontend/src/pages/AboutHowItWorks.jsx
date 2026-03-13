@@ -22,8 +22,8 @@ const STEPS = [
   },
   {
     number: '04',
-    title: 'Save & Share',
-    body: 'Full session transcripts are saved automatically. Export them as PDFs or share directly with Google Classroom.',
+    title: 'Copy & Share',
+    body: 'Full session transcripts are saved automatically. You can copy your transcripts and share with your peers.',
     icon: '📤',
   },
 ]

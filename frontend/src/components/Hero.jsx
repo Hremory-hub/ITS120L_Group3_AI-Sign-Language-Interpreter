@@ -119,7 +119,7 @@ export default function Hero() {
             <div className={`flex flex-wrap justify-center md:justify-start gap-6 sm:gap-8 pt-2
               ${visible ? 'animate-fadeUp' : 'opacity-0'} delay-400`}>
               <StatCard value={100} suffix="+" label="Students Reached" animate={visible} delay="400ms" />
-              <StatCard value={95}    suffix="%" label="Accuracy Rate"    animate={visible} delay="500ms" />
+              <StatCard value={98}    suffix="%" label="Accuracy Rate"    animate={visible} delay="500ms" />
             </div>
           </div>
 
@@ -163,9 +163,9 @@ export default function Hero() {
               <p className="text-xs text-gray-500 font-medium">Confidence</p>
               <div className="flex items-center gap-2 mt-1">
                 <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full w-[97%] bg-teal-400 rounded-full" />
+                  <div className="h-full w-[98%] bg-teal-400 rounded-full" />
                 </div>
-                <span className="text-xs font-bold text-teal-600">97%</span>
+                <span className="text-xs font-bold text-teal-600">98%</span>
               </div>
             </div>
           </div>

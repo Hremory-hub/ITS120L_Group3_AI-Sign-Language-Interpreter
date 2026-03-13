@@ -412,7 +412,7 @@ export default function Profile() {
           <div className="px-6 sm:px-8 py-6 border-b border-gray-100">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xs font-bold uppercase tracking-widest text-teal-500">Personal Information</h2>
-              <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">Firebase Auth</span>
+              <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">Authentication</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <Field label="Full Name"     editing={editing}
@@ -445,7 +445,7 @@ export default function Profile() {
           <div className="px-6 sm:px-8 py-6 border-b border-gray-100">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xs font-bold uppercase tracking-widest text-teal-500">School / Role</h2>
-              <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">MySQL · users</span>
+              <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">User Information</span>
             </div>
             {loadingDB ? <Skeleton /> : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

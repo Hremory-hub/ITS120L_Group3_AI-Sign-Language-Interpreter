@@ -48,7 +48,7 @@ export default function Pricing() {
             Simple, transparent pricing
           </h2>
           <p className="text-gray-500 text-sm sm:text-base mb-6 sm:mb-8">
-            No hidden fees. Cancel anytime. Every plan includes a 14-day free trial.
+            No hidden fees. Cancel anytime.
           </p>
 
           {/* Toggle */}

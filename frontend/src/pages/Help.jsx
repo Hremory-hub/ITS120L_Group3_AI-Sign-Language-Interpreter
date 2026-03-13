@@ -131,9 +131,9 @@ export default function Help() {
           <div className="space-y-3">
             {[
               { q: 'What sign languages does KamAI support?', a: 'KamAI currently supports Filipino Sign Language (FSL) and American Sign Language (ASL).' },
-              { q: 'Does KamAI work offline?', a: 'KamAI requires an internet connection for full AI processing. A limited offline mode is in development.' },
+              { q: 'Does KamAI work offline?', a: 'KamAI requires an internet connection for full AI processing.' },
               { q: 'Is my video data stored?', a: 'No. All video processing happens in real time and no footage is ever stored or uploaded to our servers.' },
-              { q: 'Can I use KamAI on a mobile device?', a: 'Yes! KamAI is fully browser-based and works on any device with a front-facing camera.' },
+              { q: 'Can I use KamAI on a mobile device?', a: 'Yes! KamAI is fully browser-based and works on any desktop/laptop device with a front-facing camera.' },
             ].map((faq, i) => (
               <FAQItem key={i} q={faq.q} a={faq.a} />
             ))}

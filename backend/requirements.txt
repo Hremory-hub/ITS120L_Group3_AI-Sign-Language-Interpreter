@@ -1,0 +1,44 @@
+# ── Core API ──────────────────────────────────────────────────────────────────
+fastapi==0.135.1
+uvicorn==0.41.0
+starlette==0.52.1
+python-multipart==0.0.22
+python-dotenv==1.2.2
+
+# ── Database ──────────────────────────────────────────────────────────────────
+SQLAlchemy==2.0.47
+PyMySQL==1.1.2
+greenlet==3.3.2
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+firebase_admin==7.2.0
+
+# ── Payments ──────────────────────────────────────────────────────────────────
+httpx==0.28.1
+
+# ── ML / Prediction  (needed by /predict/ endpoint) ───────────────────────────
+# tensorflow-intel is Windows-only — DO NOT include for Linux/Railway
+tensorflow==2.16.1
+mediapipe==0.10.14
+opencv-python-headless==4.11.0.86
+
+# ── Autocomplete ──────────────────────────────────────────────────────────────
+fast-autocomplete==0.9.0
+
+# ── Pydantic / typing ─────────────────────────────────────────────────────────
+pydantic==2.12.5
+pydantic_core==2.41.5
+annotated-types==0.7.0
+typing_extensions==4.15.0
+
+# ── HTTP / network ────────────────────────────────────────────────────────────
+requests==2.32.5
+certifi==2026.2.25
+urllib3==2.6.3
+idna==3.11
+charset-normalizer==3.4.4
+
+# ── TF transitive deps (needed, pulled in automatically but pinned for stability)
+numpy==1.26.4
+h5py==3.15.1
+protobuf==4.25.3
